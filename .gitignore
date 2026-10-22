@@ -1,0 +1,33 @@
+# deps
+node_modules/
+.pnp
+.pnp.js
+
+# next
+.next/
+out/
+next-env.d.ts
+
+# cache (dữ liệu cohoc.net đã bóc tách)
+.cache/
+
+# env
+.env
+.env.local
+.env*.local
+
+# misc
+.tmp/
+*.log
+.DS_Store
+tsconfig.tsbuildinfo
+
+# output sinh ra khi chạy script — DỮ LIỆU LÁ SỐ, không commit
+# (chạy lại `npm run prompt:dump` / `snapshot` / `report:real` là có lại)
+demo/report-real.json
+demo/prompt-*.md
+demo/la-so-*.md
+demo/snapshot.html
+
+# ghi chú nội bộ của AI agent
+.workbuddy-ai/
