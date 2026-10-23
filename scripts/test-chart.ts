@@ -8,10 +8,13 @@ import { crossCheckChart } from '../lib/tuvi/cohoc-parser';
 import type { NormalizedChartJSON } from '../types/tuvi';
 
 const cases = [
-  { label: 'Nam 21/10/1990 giờ Ngọ', input: { gender: 'nam' as const, calendarType: 'solar' as const, date: '1990-10-21', hour: 12, viewingYear: 2026 } },
-  { label: 'Nữ 12/03/1985 giờ Dần', input: { gender: 'nu' as const, calendarType: 'solar' as const, date: '1985-03-12', hour: 4, viewingYear: 2026 } },
-  { label: 'Nam 01/01/2000 giờ Tý sớm', input: { gender: 'nam' as const, calendarType: 'solar' as const, date: '2000-01-01', hour: 0, viewingYear: 2026 } },
-  { label: 'Nữ 04/09/1990 Âm lịch giờ Ngọ', input: { gender: 'nu' as const, calendarType: 'lunar' as const, date: '1990-9-4', hour: 12, viewingYear: 2026 } },
+  { label: 'Nam 21/10/1990 giờ Ngọ', input: { gender: 'nam' as const, calendarType: 'solar' as const, date: '1990-10-21', hour: 12, viewingYear: 2026, isLeapMonth: false } },
+  { label: 'Nữ 12/03/1985 giờ Dần', input: { gender: 'nu' as const, calendarType: 'solar' as const, date: '1985-03-12', hour: 4, viewingYear: 2026, isLeapMonth: false } },
+  { label: 'Nam 01/01/2000 giờ Tý sớm', input: { gender: 'nam' as const, calendarType: 'solar' as const, date: '2000-01-01', hour: 0, viewingYear: 2026, isLeapMonth: false } },
+  { label: 'Nữ 04/09/1990 Âm lịch giờ Ngọ', input: { gender: 'nu' as const, calendarType: 'lunar' as const, date: '1990-9-4', hour: 12, viewingYear: 2026, isLeapMonth: false } },
+  /* 1995 có tháng nhuận 8 — dùng để kiểm đường isLeapMonth thật, không phải
+     tháng thường đội lốt nhuận. */
+  { label: 'Nữ 16/08/1995 Âm lịch nhuận giờ Ngọ', input: { gender: 'nu' as const, calendarType: 'lunar' as const, date: '1995-8-16', hour: 12, viewingYear: 2026, isLeapMonth: true } },
 ];
 
 function assert(cond: unknown, msg: string) {
@@ -23,6 +26,18 @@ function assert(cond: unknown, msg: string) {
   }
 }
 
+function assertThrows(fn: () => unknown, match: RegExp, msg: string) {
+  try {
+    fn();
+  } catch (e) {
+    const text = e instanceof Error ? e.message : String(e);
+    assert(match.test(text), msg);
+    if (!match.test(text)) console.error('    thông báo thực tế:', text);
+    return;
+  }
+  assert(false, `${msg} — không ném lỗi`);
+}
+
 function invariants(c: NormalizedChartJSON, label: string) {
   console.log(`\n=== ${label} ===`);
   console.log(
@@ -32,7 +47,7 @@ function invariants(c: NormalizedChartJSON, label: string) {
     `Mệnh ${c.thienBan.menhBranch} | Thân cư ${c.thienBan.thanCu} (${c.thienBan.thanBranch}) | ${c.thienBan.cuc} | ${c.thienBan.amDuong} | Nạp âm ${c.thienBan.napAm} (${c.thienBan.napAmElement})`,
   );
   console.log(
-    `Chủ mệnh ${c.thienBan.menhChu} | Chủ thân ${c.thienBan.thanChu} | Cục↔Mệnh ${c.thienBan.cucVsMenh}`,
+    `Mệnh chủ ${c.thienBan.menhChu} | Thân chủ ${c.thienBan.thanChu} | Cục↔Mệnh ${c.thienBan.cucVsMenh}`,
   );
   console.log(
     `Đại vận đang chạy (${c.meta.viewingYear}): ${c.annual?.activeDecadal?.range.join('-')} tuổi — cung ${c.annual?.activeDecadal?.palaceName} (${c.annual?.activeDecadal?.score}đ) | Lưu niên ${c.annual?.chineseYear} tuổi ${c.annual?.age} | Tứ hoá ${c.annual?.mutagen?.join(', ')}`,
@@ -68,8 +83,82 @@ function invariants(c: NormalizedChartJSON, label: string) {
 for (const tc of cases) {
   const chart = chartGenerator.generate(tc.input);
   invariants(chart, tc.label);
+  if (tc.input.isLeapMonth) {
+    assert(chart.meta.lunar.isLeapMonth, 'meta.lunar giữ cờ tháng nhuận');
+    assert(chart.meta.lunarDateText.includes('nhuận'), 'chuỗi âm lịch ghi rõ "nhuận"');
+  }
   if (chart.warnings.length) console.log('\n⚠ warnings:', chart.warnings.join(' | '));
 }
+
+/*
+ * fixLeap: ngày 16 tháng nhuận + giờ không phải Tý muộn → iztro đẩy sang tháng
+ * kế khi fixLeap = true. Điểm quan trọng là LÁ SỐ PHẢI KHÁC — nếu hai cờ cho ra
+ * cùng 12 cung thì tuỳ chọn trong form chỉ là trang trí.
+ */
+console.log('\n=== tháng nhuận + fixLeap ===');
+const leapBase = {
+  gender: 'nu' as const,
+  calendarType: 'lunar' as const,
+  date: '1995-8-16',
+  hour: 12,
+  viewingYear: 2026,
+  isLeapMonth: true,
+};
+const leapFixed = chartGenerator.generate({ ...leapBase, fixLeap: true });
+const leapKept = chartGenerator.generate({ ...leapBase, fixLeap: false });
+assert(leapFixed.meta.lunar.isLeapMonth && leapKept.meta.lunar.isLeapMonth, 'cả hai chế độ vẫn nhận đúng tháng nhuận');
+assert(
+  JSON.stringify(leapFixed.palaces) !== JSON.stringify(leapKept.palaces),
+  'fixLeap true/false cho ra lá số khác nhau (không phải tuỳ chọn trang trí)',
+);
+
+const solarWithLeapFlag = chartGenerator.generate({
+  gender: 'nam',
+  calendarType: 'solar',
+  date: '1990-10-21',
+  hour: 12,
+  isLeapMonth: true,
+});
+assert(
+  solarWithLeapFlag.warnings.some((w) => w.includes('isLeapMonth')),
+  'cờ tháng nhuận trên ngày dương lịch → cảnh báo, không bỏ qua im lặng',
+);
+
+/*
+ * Ngày không tồn tại phải nổ ở tầng validate với thông báo đọc được, không để
+ * lunar-lite/iztro nuốt rồi trả lá số lệch ngày.
+ */
+console.log('\n=== validate ngày ===');
+assertThrows(
+  () => chartGenerator.generate({ gender: 'nam', calendarType: 'solar', date: '1990-02-30', hour: 12 }),
+  /không tồn tại/,
+  'dương lịch 30/02 bị chặn',
+);
+assertThrows(
+  () => chartGenerator.generate({ gender: 'nam', calendarType: 'solar', date: '1899-12-31', hour: 12 }),
+  /1900–2100/,
+  'dương lịch trước 1900 bị chặn',
+);
+assertThrows(
+  () => chartGenerator.generate({ gender: 'nam', calendarType: 'solar', date: '1900-01-30', hour: 12 }),
+  /31\/01\/1900/,
+  'dương lịch trước mốc 31/01/1900 bị chặn',
+);
+assertThrows(
+  () => chartGenerator.generate({ gender: 'nam', calendarType: 'lunar', date: '1995-8-31', hour: 12 }),
+  /âm lịch không hợp lệ/,
+  'âm lịch ngày 31 bị chặn',
+);
+assertThrows(
+  () => chartGenerator.generate({ gender: 'nam', calendarType: 'solar', date: '21/10/1990', hour: 12 }),
+  /YYYY-MM-DD/,
+  'sai định dạng ngày bị chặn',
+);
+assertThrows(
+  () => chartGenerator.generate({ gender: 'nam', calendarType: 'solar', date: '1990-10-21', hour: 24 }),
+  /Giờ không hợp lệ/,
+  'giờ 24 bị chặn',
+);
 
 // Unit test nhỏ cho helper
 console.log('\n=== helper ===');

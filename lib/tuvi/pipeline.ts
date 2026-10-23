@@ -12,7 +12,6 @@ import type { ChartInput, NormalizedChartJSON, RawClassicalTexts } from '@/types
 import { chartGenerator } from './chart-generator.service';
 import { CohocKnowledgeService, type CohocViewMode } from './cohoc-knowledge.service';
 import { buildHints } from './prompt-builder';
-import { parseCohocChartTable, crossCheckChart } from './cohoc-parser';
 
 export interface AnalyzeOptions {
   /** Chế độ xem trên cohoc: mặc định 'tong-hop'. */
@@ -70,26 +69,6 @@ export async function analyzeChart(input: ChartInput, options: AnalyzeOptions = 
   });
 
   warnings.push(...classical.warnings);
-
-  /* Cross-check: phát hiện lệch phái an sao giữa engine và nguồn cổ học */
-  if (classical.overview.length || Object.keys(classical.palaces).length) {
-    try {
-      const html = await service.fetchRawHtml({
-        solarDate: chart.meta.solarDate,
-        gender: chart.meta.gender,
-        timeIndex: chart.meta.timeIndex,
-        viewMode: options.viewMode ?? 'tong-hop',
-      });
-      const issues = crossCheckChart(chart.palaces, parseCohocChartTable(html.html));
-      if (issues.length) {
-        warnings.push(
-          `Lệch phái an sao so với cohoc.net: ${issues.join('; ')}. Báo cáo vẫn dựa trên lá số engine — kiểm tra lại ngày/giờ sinh nếu thấy bất thường.`,
-        );
-      }
-    } catch {
-      /* cross-check là tuỳ chọn */
-    }
-  }
 
   return { chart, classical, warnings };
 }

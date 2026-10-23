@@ -124,6 +124,42 @@ function branchOfIndex(index: number): EarthlyBranch {
   return BRANCHES[(index + 2) % 12];
 }
 
+/**
+ * iztro/lunar-lite chỉ có bảng năm 1900–2100. Chặn trước để lỗi hiện thành
+ * thông báo đọc được, thay vì một exception khó hiểu từ sâu trong engine.
+ * Dương lịch còn phải từ 31/01/1900 — mốc bảng đổi ngày của lunar-lite.
+ */
+function assertSupportedDate(input: ChartInput): void {
+  const m = input.date.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (!m) throw new Error('Ngày sinh phải có dạng YYYY-MM-DD');
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+
+  if (year < 1900 || year > 2100) {
+    throw new Error('Engine chỉ hỗ trợ năm sinh trong khoảng 1900–2100.');
+  }
+
+  if (input.calendarType === 'solar') {
+    const dt = new Date(Date.UTC(year, month - 1, day));
+    if (
+      dt.getUTCFullYear() !== year ||
+      dt.getUTCMonth() !== month - 1 ||
+      dt.getUTCDate() !== day
+    ) {
+      throw new Error(`Ngày dương lịch không tồn tại: ${input.date}`);
+    }
+    if (year === 1900 && month === 1 && day < 31) {
+      throw new Error('Engine chỉ hỗ trợ dương lịch từ 31/01/1900.');
+    }
+    return;
+  }
+
+  if (month < 1 || month > 12 || day < 1 || day > 30) {
+    throw new Error(`Ngày âm lịch không hợp lệ: ${input.date} (tháng 1–12, ngày 1–30).`);
+  }
+}
+
 function palaceKeyOf(name: string): PalaceKey {
   const k = PALACE_KEY_MAP[name.trim().toLowerCase()];
   if (!k) throw new Error(`Không map được tên cung: "${name}"`);
@@ -160,11 +196,12 @@ export class ChartGeneratorService {
     const warnings: string[] = [];
 
     /* 1. Validate */
-    if (!/^\d{4}-\d{1,2}-\d{1,2}$/.test(input.date)) {
-      throw new Error('Ngày sinh phải có dạng YYYY-MM-DD');
-    }
+    assertSupportedDate(input);
     if (!['nam', 'nu'].includes(input.gender)) {
       throw new Error('Giới tính phải là "nam" hoặc "nu"');
+    }
+    if (input.calendarType === 'solar' && input.isLeapMonth) {
+      warnings.push('isLeapMonth chỉ áp dụng cho âm lịch — đã bỏ qua với ngày dương lịch.');
     }
 
     const timeIndex = hourToTimeIndex(input.hour, input.minute ?? 0);

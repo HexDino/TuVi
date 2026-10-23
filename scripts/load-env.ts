@@ -1,7 +1,7 @@
 /**
  * scripts/load-env.ts
  * Next.js tự nạp .env.local; script CLI thì không. Helper này nạp thủ công
- * để `npm run report:real` dùng đúng cấu hình như app.
+ * để `npm run pipeline:test` đọc đúng COHOC_ENABLED như ứng dụng.
  *
  * Không dùng dotenv để tránh thêm dependency — định dạng .env đơn giản là đủ.
  */

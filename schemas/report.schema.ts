@@ -1,14 +1,13 @@
 /**
  * schemas/report.schema.ts
  * ---------------------------------------------------------------------------
- * Structured Output contract cho LLM (Zod).
+ * Hợp đồng đầu ra cho báo cáo luận giải (Zod).
  *
- * Vì sao phải có schema thay vì để LLM trả markdown tự do:
+ * Gemini không ép được JSON Schema, nên hợp đồng này là chốt chặn ở phía ứng dụng:
  *  1. UI cần dữ liệu có cấu trúc để render Bento Grid / Tabs / thanh điểm.
- *  2. Streaming `streamObject` chỉ hoạt động khi có schema — nhờ đó người dùng
- *     thấy phần Tổng quan hiện ra trước khi 12 cung luận xong.
- *  3. Zod validate được output → chặn hallucination về cấu trúc (thiếu cung,
- *     sai enum, điểm ngoài thang).
+ *  2. Câu trả lời dán tay được tách 4 phần, ghép lại và validate trước khi vào UI.
+ *  3. Zod chặn lỗi cấu trúc (thiếu cung, sai enum, điểm ngoài thang) — thứ mà
+ *     kiểm tra văn xuôi không bắt được.
  *
  * Quy ước: mọi text trả về là tiếng Việt, không markdown heading bên trong
  * (UI tự render heading). Chỉ cho phép xuống dòng bằng "\n".
@@ -72,16 +71,16 @@ export const PalaceReportSchema = z.object({
     .describe('1-2 câu đánh giá trọng tâm — phần "🎯 Đánh giá trọng tâm" của báo cáo'),
   /**
    * ĐÂY LÀ FIELD QUAN TRỌNG NHẤT CHO CẢM GIÁC "NGƯỜI VIẾT".
-   * Bullet list đọc như máy tổng hợp; một đoạn văn liền mạch 2-3 đoạn đọc như
-   * người thầy đang nói. UI dùng field này ở chế độ Đọc, còn strengths/risks
-   * chỉ hiện khi người dùng mở "chi tiết".
+   * Bullet list đọc như máy tổng hợp; một đoạn văn liền mạch đọc như người thầy
+   * đang nói. UI dùng field này ở chế độ Đọc, còn strengths/risks chỉ hiện khi
+   * người dùng mở "chi tiết".
    */
   narrative: z
     .string()
     .min(200)
     
     .describe(
-      'Bài luận liền mạch 2-3 đoạn cho cung này, ngăn cách bằng \n\n. Đoạn 1: bản chất (chính tinh + trạng thái quyết định gì). Đoạn 2: biểu hiện thực tế trong công việc/tiền bạc/quan hệ, kèm cái giá phải trả. Đoạn 3 (nếu cần): điều nên làm khác đi. Viết như đang nói với một người cụ thể, không phải viết báo cáo.',
+      'Bài luận liền mạch 1–2 đoạn cho cung này, dài 300–650 ký tự, ngắt bằng \n\n. Đoạn 1: bản chất (chính tinh + trạng thái quyết định gì) và biểu hiện thực tế trong công việc/tiền bạc/quan hệ. Đoạn 2: cái giá phải trả và điều nên làm khác đi. Viết như đang nói với một người cụ thể, không phải viết báo cáo.',
     ),
   strengths: z.array(InsightSchema).min(1).describe('Điểm sáng / ưu thế thực chất'),
   risks: z.array(InsightSchema).min(1).describe('Điểm nghẽn / rủi ro, diễn đạt theo hướng quản trị rủi ro'),
@@ -265,7 +264,7 @@ type PalaceKey = z.infer<typeof PalaceKeyEnum>;
 /* ------------------------------------------------------------------------- */
 /*
  * Vì sao chia nhỏ thay vì một object khổng lồ:
- *  - Một báo cáo đầy đủ ~12–15k token JSON. Model dễ bị cắt giữa chừng
+ *  - Một báo cáo đầy đủ ~12–15k token JSON. Mô hình dễ bị cắt giữa chừng
  *    (finishReason=length), mất toàn bộ công đã viết.
  *  - Prompt một cục 33k token; chia nhỏ thì mỗi lần chỉ cần nạp văn bản cổ học
  *    của đúng 4 cung liên quan → rẻ hơn, nhanh hơn, ít nhiễu hơn.

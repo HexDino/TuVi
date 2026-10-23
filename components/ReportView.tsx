@@ -5,7 +5,7 @@ import type { TuViFullReport } from '@/schemas/report.schema';
 import type { NormalizedChartJSON } from '@/types/tuvi';
 import { QUALITY_LABEL, type QualitySummary } from '@/lib/tuvi/report-quality';
 
-/** Partial object đến từ streamObject — mọi field đều có thể chưa có. */
+/** Partial object trong lúc ghép 4 phần — mọi field đều có thể chưa có. */
 export type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends Array<infer U>
     ? Array<DeepPartial<U>>
@@ -50,7 +50,7 @@ const GROUP_LABEL: Record<string, string> = {
 const GROUP_META: Record<string, { kicker: string; title: string }> = {
   career: { kicker: 'Phần II', title: 'Sự nghiệp & tài chính' },
   family: { kicker: 'Phần III', title: 'Gia đạo & phúc phận' },
-  social: { kicker: 'Phần IV', title: 'Quan hệ xã hội & sức khoẻ' },
+  social: { kicker: 'Phần IV', title: 'Quan hệ xã hội & sức khỏe' },
 };
 
 /* ------------------------------ atoms ------------------------------ */
@@ -601,13 +601,10 @@ export function PlanView({ report }: { report: PartialReport }) {
 /* --------------------------- quality card --------------------------- */
 
 /**
- * Bảng điểm chất lượng — 11 tiêu chí kiểm máy.
+ * Bảng điểm chất lượng — 12 tiêu chí kiểm máy trên báo cáo người dùng dán về.
  *
- * Cả hai đường sinh báo cáo (LLM qua SSE, người dùng dán từ chat web) đều trả
- * về cùng một `QualitySummary`, nên chỉ cần một chỗ render ở đây.
- *
- * Chỉ liệt kê tiêu chí RỚT: 11 dòng xì xụp sẽ che mất đúng thứ người dùng cần
- * đọc; còn 11/11 thì một dòng chốt là đủ.
+ * Chỉ liệt kê tiêu chí RỚT: 12 dòng xì xụp sẽ che mất đúng thứ người dùng cần
+ * đọc; còn 12/12 thì một dòng chốt là đủ.
  */
 function QualityCard({ quality }: { quality: QualitySummary }) {
   if (!quality.issues.length) {
@@ -638,7 +635,7 @@ const TABS = [
   { id: 'overview', label: 'Tổng quan' },
   { id: 'career', label: 'Sự nghiệp · Tài chính' },
   { id: 'family', label: 'Gia đạo · Phúc phận' },
-  { id: 'social', label: 'Xã hội · Sức khoẻ' },
+  { id: 'social', label: 'Xã hội · Sức khỏe' },
   { id: 'plan', label: 'Đại vận · Cải mệnh' },
 ] as const;
 
@@ -647,17 +644,13 @@ type TabId = (typeof TABS)[number]['id'];
 export function ReportView({
   report,
   chart,
-  streaming,
-  error,
-  notice,
   quality,
+  onOpenSkill,
 }: {
   report: PartialReport | null;
   chart: NormalizedChartJSON | null;
-  streaming: boolean;
-  error: string | null;
-  notice?: string | null;
   quality?: QualitySummary | null;
+  onOpenSkill: () => void;
 }) {
   const [mode, setMode] = useState<'doc' | 'scan'>('doc');
   const [tab, setTab] = useState<TabId>('overview');
@@ -675,6 +668,39 @@ export function ReportView({
     if (!p) return undefined;
     return p.isEmpty ? 'Vô chính diệu' : p.majorStars.map((s) => `${s.name} (${s.brightness})`).join(', ');
   };
+
+  if (!report) {
+    return (
+      <div className="empty empty-guide">
+        <b>Chưa có luận giải</b>
+        <p className="guide-intro">
+          Ứng dụng không gọi API của mô hình. Bạn cài gói kỹ năng trong Gemini, dán dữ liệu lá số, rồi
+          đọc câu trả lời ngay trong chat Gemini.
+        </p>
+        <ol className="guide-steps">
+          <li>
+            <b>Cài gói kỹ năng một lần.</b> Bật <i>Keep Activity</i>, tải gói .zip trong hộp thoại,
+            rồi vào Gemini → <i>Tùy chỉnh (Customize) → Kỹ năng (Skills) → Tạo (Create) → Tải lên
+            (Upload)</i> và chọn tệp đó. Đã cài rồi thì bỏ qua bước này.
+          </li>
+          <li>
+            <b>Lấy dữ liệu lá số.</b> Trong chat, gõ <code>/</code> và chọn{' '}
+            <code>tuvi-dau-so</code>, rồi chọn “Kèm cổ học” (sâu hơn) hoặc “Gọn” và sao chép từng
+            phần — nên dùng 4 lượt để mô hình không bị cắt giữa chừng.
+          </li>
+          <li>
+            <b>Đọc kết quả trong Gemini.</b> Dán từng phần theo hướng dẫn; câu trả lời hiển thị ngay
+            trong chat, không cần dán lại vào ứng dụng.
+          </li>
+        </ol>
+        <div style={{ marginTop: 18 }}>
+          <button className="btn-ghost" onClick={onOpenSkill}>
+            Luận giải bằng Gemini
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const renderGroup = (group: PartialReport['careerGroup']) => {
     if (!group?.length) {
@@ -698,8 +724,6 @@ export function ReportView({
     );
   };
 
-  const pct = Math.min(100, Math.round((counts.total / 12) * 100));
-
   return (
     <div>
       <div className="toolbar" style={{ marginTop: -6 }}>
@@ -712,36 +736,16 @@ export function ReportView({
           </button>
         </div>
         <span className="toolbar-title">
-          {counts.total > 0 ? (
-            <>
-              {counts.total}/12 cung{' '}
-              <span>· {mode === 'doc' ? 'đọc liền mạch' : 'dạng thẻ'}</span>
-            </>
-          ) : (
-            <span>đang chờ nội dung…</span>
-          )}
+          {counts.total}/12 cung{' '}
+          <span>· {mode === 'doc' ? 'đọc liền mạch' : 'dạng thẻ'}</span>
         </span>
         <span className="spacer" />
-        {streaming && (
-          <span className="stream-status" style={{ margin: 0 }}>
-            <span className="dot" />
-            đang viết…
-          </span>
-        )}
       </div>
 
-      {streaming && (
-        <div className="progress">
-          <i style={{ width: `${Math.max(4, pct)}%` }} />
-        </div>
-      )}
-
-      {notice && <div className="notice">⚡ {notice}</div>}
-      {error && <div className="err" style={{ marginBottom: 14 }}>{error}</div>}
       {quality && <QualityCard quality={quality} />}
 
       {mode === 'doc' ? (
-        <ReaderView report={report ?? {}} scoreOf={scoreOf} />
+        <ReaderView report={report} scoreOf={scoreOf} />
       ) : (
         <>
           <div className="tabs">
@@ -755,11 +759,11 @@ export function ReportView({
             ))}
           </div>
 
-          {tab === 'overview' && <OverviewView report={report ?? {}} />}
-          {tab === 'career' && renderGroup(report?.careerGroup)}
-          {tab === 'family' && renderGroup(report?.familyGroup)}
-          {tab === 'social' && renderGroup(report?.socialGroup)}
-          {tab === 'plan' && <PlanView report={report ?? {}} />}
+          {tab === 'overview' && <OverviewView report={report} />}
+          {tab === 'career' && renderGroup(report.careerGroup)}
+          {tab === 'family' && renderGroup(report.familyGroup)}
+          {tab === 'social' && renderGroup(report.socialGroup)}
+          {tab === 'plan' && <PlanView report={report} />}
         </>
       )}
     </div>

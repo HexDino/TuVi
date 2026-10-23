@@ -23,7 +23,7 @@ next-env.d.ts
 tsconfig.tsbuildinfo
 
 # output sinh ra khi chạy script — DỮ LIỆU LÁ SỐ, không commit
-# (chạy lại `npm run prompt:dump` / `snapshot` / `report:real` là có lại)
+# (`npm run snapshot` tạo lại; vài mục là output của script đã bỏ)
 demo/report-real.json
 demo/prompt-*.md
 demo/la-so-*.md

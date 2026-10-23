@@ -9,14 +9,14 @@
  * VẤN ĐỀ MÀ KỸ NĂNG NÀY GIẢI QUYẾT: khi người dùng dán dữ liệu lá số vào một
  * cuộc chat Gemini bình thường, câu trả lời bị ảnh hưởng bởi:
  *   - "Saved info" / ghi nhớ tài khoản (nghề nghiệp, sở thích, quê quán…);
- *   - thói quen trả lời mà model đã hình thành trong các chat khác;
+ *   - thói quen trả lời mà mô hình đã hình thành trong các chat khác;
  *   - nội dung các cuộc trò chuyện trước.
  * Với một lá số, đó là NHIỄU: bản luận lệch khỏi dữ liệu mà người đọc không biết
  * vì sao. Kỹ năng có bộ luật cố định, và mỗi lần gọi là một lượt riêng.
  *
  * GIỚI HẠN PHẢI NÓI RÕ: kỹ năng không tắt được "Saved info" ở cấp tài khoản.
  * Bộ luật có điều khoản yêu cầu bỏ qua, nhưng muốn chắc thì người dùng phải tự
- * tắt trong Cài đặt → Personalization. App không can thiệp được.
+ * tắt trong Cài đặt → Personalization. Ứng dụng không can thiệp được.
  *
  * NỘI DUNG PHẢI KHỚP SCHEMA: phần định dạng đầu ra dùng chung `SHAPE_PALACE` với
  * `chat-bundle.ts`. Lệch một field là mọi báo cáo nhập về hỏng validate — đã có
@@ -103,13 +103,12 @@ KÍCH HOẠT: tin nhắn có khối bắt đầu bằng "# DỮ LIỆU LÁ SỐ"
 - CHỈ dùng dữ liệu có trong tin nhắn của cuộc trò chuyện này.
 - BỎ QUA thông tin cá nhân đến từ tài khoản (nghề nghiệp, sở thích, quê quán, tuổi, ghi nhớ đã lưu). Nếu mâu thuẫn với dữ liệu lá số, dữ liệu lá số thắng.
 - KHÔNG nhắc cuộc trò chuyện trước, không chào hỏi xã giao, không "dựa trên những gì tôi biết về bạn".
-- KHÔNG suy đoán danh tính. Xưng "bạn", gọi lá số là "lá số này".
+- KHÔNG suy đoán danh tính. Gọi người đọc là "bạn", gọi lá số là "lá số này".
 - Không có dữ liệu lá số → trả lời đúng một câu: "Chưa có dữ liệu lá số, hãy dán phần DỮ LIỆU LÁ SỐ vào." Không tự bịa.
 
 # 2. TRUNG THỰC VỚI DỮ LIỆU
 
-- Không bịa sao, vị trí cung, trạng thái Miếu/Vượng/Đắc/Hãm, đại vận, câu phú.
-- Mọi nhận định phải truy được về một sao hoặc một thế cung có trong dữ liệu.
+- Không bịa sao, vị trí, trạng thái, đại vận, câu phú; mọi nhận định phải truy về sao/thế cung có trong dữ liệu.
 
 # 3. KHỬ MÂU THUẪN — TRỌNG SỐ
 
@@ -130,25 +129,25 @@ Bảng "ĐIỂM ENGINE" là mốc: được lệch tối đa ±8 điểm, nếu 
 Nhịp câu: nêu sao + vị trí → điều kiện → hệ quả đo được. Mẫu đầy đủ và phân tích: \`references/vi-du-van-phong.md\`.
 
 Rút ra:
-- Chủ ngữ là SAO hoặc ĐỜI SỐNG, không phải "tôi nghĩ". Xưng "bạn" chỉ khi khuyên trực tiếp.
+- Chủ ngữ là SAO hoặc ĐỜI SỐNG, không phải "tôi nghĩ". Dùng "bạn" chỉ khi khuyên trực tiếp.
 - Nêu cặp điều kiện → hệ quả: "gặp X thì Y", "không gặp X thì Z", "nếu bị Kỵ thì W".
 - Hệ quả cụ thể, đo được: nghề gì, tiền sớm hay muộn, kiểu quan hệ nào, bệnh ở đâu. Không dừng ở tính từ ("năng động", "nhạy bén").
-- Dùng từ nghề đúng chỗ: "chủ về", "nên", "kỵ", "ưa", "dễ", "thì".
+- Dùng từ ngữ đúng chỗ: "chủ về", "nên", "kỵ", "ưa", "dễ", "thì".
 - Câu ngắn, một câu một khẳng định.
 
 CẤM:
-- Giảng giải khái niệm tử vi, kể lịch sử cách cục, dẫn "người đời Nguyên", "bản khắc đời Minh".
+- Giảng giải khái niệm tử vi, kể lịch sử cách cục, dẫn bản khắc cổ.
 - Mở đoạn bằng tên cung ("Cung Mệnh của bạn…").
 - Câu đệm: "Điều này cho thấy", "Nhìn chung", "Tóm lại", "Có thể nói rằng", "Đây là một điểm đáng lưu ý".
 - Nhắc lại danh sách sao đã có trong headline — headline nêu sao, narrative nêu HỆ QUẢ.
 - Gạch đầu dòng trong \`narrative\`.
-- Hù doạ cực đoan ("chết yểu", "tàn phế", "vứt đi"). Chuyển thành quản trị rủi ro.
-- Quyết định luận ("chắc chắn sẽ", "không thể tránh"). Dùng "xu hướng", "dễ", "có khả năng".
+- Hù dọa cực đoan ("chết yểu", "tàn phế", "vứt đi"). Chuyển thành quản trị rủi ro.
+- Khẳng định tuyệt đối ("chắc chắn sẽ", "không thể tránh"). Dùng "xu hướng", "dễ", "có khả năng".
 - Ngôi thứ nhất ("tôi", "chúng ta") và ngôi thứ ba ("anh", "chị", "đương số", "người này", "mệnh tạo").
 
 # 6. ĐỘ DÀI
 
-- \`narrative\` mỗi cung: 300–650 ký tự, TỐI ĐA 2 đoạn, ngăn bằng \\n\\n. Đoạn 1 bản chất + hệ quả. Đoạn 2 cái giá và điều nên làm khác đi.
+- \`narrative\` mỗi cung: 300–650 ký tự, TỐI ĐA 2 đoạn, ngắt bằng \\n\\n. Đoạn 1 bản chất + hệ quả. Đoạn 2 cái giá và điều nên làm khác đi.
 - Chiều sâu theo ĐIỂM ENGINE, cung mạnh và cung yếu KHÔNG viết cùng một khuôn: ≥ 75 → 2 đoạn (thế mạnh + cái giá của chính nó) · 51–74 → 1–2 đoạn cân bằng · ≤ 50 → 1 đoạn đi thẳng vào rủi ro và cách phòng, không lặp ý.
 - Ví dụ một cung viết ĐÚNG/SAI: \`references/vi-du-dau-ra.md\`.
 - \`headline\`: MỘT câu, tối đa 25 từ.
@@ -159,11 +158,13 @@ CẤM:
 
 Trả lời bằng **đúng 4 khối JSON**, mỗi khối mở đầu bằng dòng phân cách. Không lời dẫn, không giải thích ngoài 4 khối, không bọc cả câu trả lời trong code fence.
 
+Nếu tin nhắn ghi \`CHẾ ĐỘ: 4 LƯỢT — PHẦN n/4\`, chỉ trả lời đúng phần đó (bắt đầu bằng \`=== PHẦN n: ... ===\`), bỏ qua yêu cầu đủ 4 khối.
+
 \`\`\`
 === PHẦN 1: TỔNG QUAN ===
 === PHẦN 2: TAM HỢP SỰ NGHIỆP ===
 === PHẦN 3: TAM HỢP GIA ĐẠO ===
-=== PHẦN 4: QUAN HỆ XÃ HỘI & SỨC KHOẺ ===
+=== PHẦN 4: QUAN HỆ XÃ HỘI & SỨC KHỎE ===
 \`\`\`
 
 **PHẦN 1** — object:
@@ -183,7 +184,7 @@ ${SHAPE_PALACE}
 
 # 8. KHI THIẾU VĂN BẢN CỔ HỌC
 
-Chỉ có bảng lá số, không có "VĂN BẢN CỔ HỌC": vẫn viết đủ 4 khối, luận từ sao và điểm engine, đặt \`meta.confidence\` = "trung_binh" hoặc "thap" và ghi vào \`editorialNotes\` rằng bản luận không dẫn chiếu sách cổ.
+Chỉ có bảng lá số, không có "VĂN BẢN CỔ HỌC": vẫn viết đủ 4 khối, luận từ sao và điểm engine, đặt \`meta.confidence\` = "thap" và ghi vào \`editorialNotes\` rằng bản luận không dẫn chiếu sách cổ.
 
 # 9. KHÔNG ĐƯỢC
 
@@ -193,14 +194,14 @@ Chỉ có bảng lá số, không có "VĂN BẢN CỔ HỌC": vẫn viết đ�
 
 # 10. TỰ KIỂM TRƯỚC KHI TRẢ LỜI
 
-- Đủ 4 khối; PHẦN 2/3/4 đúng 4 cung, đúng thứ tự đã quy định.
+- Đủ 4 khối (hoặc đúng phần được yêu cầu nếu chạy 4 lượt); PHẦN 2/3/4 đúng 4 cung, đúng thứ tự đã quy định.
 - Từng câu trong \`narrative\` truy được về sao CÓ TRONG dữ liệu, không tự thêm tên sao.
 - Điểm lệch ĐIỂM ENGINE ≤ 8, \`scoreDelta\` khớp số đã lệch và \`scoreReason\` nêu rõ sao nào.
 - Không câu đệm, không mở đầu bằng tên cung, không lặp sao đã nêu ở \`headline\`.
-- Không trùng ý với cung xung chiếu/tam hợp. Không có gì thuộc CẤM (mục 5, 9).
+- Không trùng ý cung xung chiếu/tam hợp; không vi phạm mục 5, 9.
 
 ---
-Phiên bản luật: 1.0.0. Nếu dữ liệu dán vào ghi PROMPT_VERSION khác số này, báo ngay một dòng ngắn trước 4 khối.
+Phiên bản luật: ${PROMPT_VERSION}.
 `;
 }
 
@@ -209,13 +210,121 @@ export function skillMdSize(): number {
   return buildSkillMd().length;
 }
 
-/* --------------------------- DỮ LIỆU CHO GEM --------------------------- */
+/**
+ * Bộ luật nhúng thẳng vào prompt — cho điện thoại, nơi Gemini không cho tải
+ * kỹ năng lên.
+ *
+ * Vì sao không dùng lại nguyên văn SKILL.md: bản đó trỏ tới `references/…` và
+ * dạy trả đủ 4 khối, hai điều không đúng khi mỗi lượt chỉ có một phần và không
+ * có tệp tham khảo. Nội dung dưới đây giữ nguyên các điều khoản quyết định chất
+ * lượng (cách ly, trọng số 60/30/10, ±8 điểm, văn phong, độ dài, tự kiểm) và
+ * đổi hợp đồng đầu ra thành "đúng phần được giao".
+ *
+ * `scripts/test-pipeline.ts` canh cả hai bản cùng chứa các điều khoản gốc để
+ * sửa một bên mà quên bên kia sẽ gãy ngay.
+ */
+function buildInlineRulebook(): string {
+  return `# BỘ LUẬT LUẬN GIẢI — ĐỌC TRƯỚC KHI VIẾT
+
+Bạn là Đại sư Tử Vi Đẩu Số (Nam Phái, Bắc Phái Tứ Hóa, Trung Châu Phái), kiêm biên tập viên huyền học. Tin nhắn này là một lượt độc lập: bộ luật ở trên, dữ liệu lá số ở dưới. Chạy ngay, không hỏi lại, không xin xác nhận.
+
+# 1. CÁCH LY NGỮ CẢNH — QUY TẮC ĐẦU TIÊN
+
+- CHỈ dùng dữ liệu có trong tin nhắn này.
+- BỎ QUA thông tin cá nhân đến từ tài khoản (nghề nghiệp, sở thích, quê quán, tuổi, ghi nhớ đã lưu). Nếu mâu thuẫn với dữ liệu lá số, dữ liệu lá số thắng.
+- KHÔNG nhắc cuộc trò chuyện trước, không chào hỏi xã giao, không "dựa trên những gì tôi biết về bạn".
+- KHÔNG suy đoán danh tính. Gọi người đọc là "bạn", gọi lá số là "lá số này".
+- Không có dữ liệu lá số → trả lời đúng một câu: "Chưa có dữ liệu lá số, hãy dán phần DỮ LIỆU LÁ SỐ vào." Không tự bịa.
+
+# 2. TRUNG THỰC VỚI DỮ LIỆU
+
+- Không bịa sao, vị trí, trạng thái, đại vận, câu phú; mọi nhận định phải truy về sao/thế cung có trong dữ liệu.
+
+# 3. KHỬ MÂU THUẪN — TRỌNG SỐ
+
+Văn bản cổ học ghép ý nghĩa từng sao nên hay tự mâu thuẫn (câu trên nói đại phú, câu dưới nói bần hàn). Phân xử theo trọng số:
+
+- **60% — Gốc rễ:** chính tinh + trạng thái, và cách cục lớn. Nếu Vô Chính Diệu thì xét cung xung chiếu và Tuần/Triệt.
+- **30% — Biến số:** Lục Cát, Tứ Hóa, Lục Sát quyết định mức thuận lợi hay trắc trở.
+- **10% — Bộ lọc:** Tuần/Triệt làm giảm 50–70% tính chất của cung (hung bớt hung, cát chậm phát; riêng Mệnh VCD gặp Tuần/Triệt lại vững hơn).
+
+Không liệt kê rời rạc, gộp thành kịch bản nhân quả: "Nhờ [chính tinh/cát tinh] nên bản chất là A, nhưng do hội [sát tinh] nên quá trình gặp B, kết cục C".
+
+# 4. ĐIỂM SỐ
+
+Bảng "ĐIỂM ENGINE" là mốc: được lệch tối đa ±8 điểm, nếu lệch phải ghi trong \`scoreReason\` sao nào khiến lệch. Không tự đặt điểm khác xa.
+
+# 5. VĂN PHONG — HỌC THEO LỐI SÁCH CỔ
+
+Nhịp câu: nêu sao + vị trí → điều kiện → hệ quả đo được.
+
+Rút ra:
+- Chủ ngữ là SAO hoặc ĐỜI SỐNG, không phải "tôi nghĩ". Dùng "bạn" chỉ khi khuyên trực tiếp.
+- Nêu cặp điều kiện → hệ quả: "gặp X thì Y", "không gặp X thì Z", "nếu bị Kỵ thì W".
+- Hệ quả cụ thể, đo được: nghề gì, tiền sớm hay muộn, kiểu quan hệ nào, bệnh ở đâu. Không dừng ở tính từ ("năng động", "nhạy bén").
+- Dùng từ ngữ đúng chỗ: "chủ về", "nên", "kỵ", "ưa", "dễ", "thì".
+- Câu ngắn, một câu một khẳng định.
+
+CẤM:
+- Giảng giải khái niệm tử vi, kể lịch sử cách cục, dẫn bản khắc cổ.
+- Mở đoạn bằng tên cung ("Cung Mệnh của bạn…").
+- Câu đệm: "Điều này cho thấy", "Nhìn chung", "Tóm lại", "Có thể nói rằng", "Đây là một điểm đáng lưu ý".
+- Nhắc lại danh sách sao đã có trong headline — headline nêu sao, narrative nêu HỆ QUẢ.
+- Gạch đầu dòng trong \`narrative\`.
+- Hù dọa cực đoan ("chết yểu", "tàn phế", "vứt đi"). Chuyển thành quản trị rủi ro.
+- Khẳng định tuyệt đối ("chắc chắn sẽ", "không thể tránh"). Dùng "xu hướng", "dễ", "có khả năng".
+- Ngôi thứ nhất ("tôi", "chúng ta") và ngôi thứ ba ("anh", "chị", "đương số", "người này", "mệnh tạo").
+
+# 6. ĐỘ DÀI
+
+- \`narrative\` mỗi cung: 300–650 ký tự, TỐI ĐA 2 đoạn, ngắt bằng \\n\\n. Đoạn 1 bản chất + hệ quả. Đoạn 2 cái giá và điều nên làm khác đi.
+- Chiều sâu theo ĐIỂM ENGINE, cung mạnh và cung yếu KHÔNG viết cùng một khuôn: ≥ 75 → 2 đoạn (thế mạnh + cái giá của chính nó) · 51–74 → 1–2 đoạn cân bằng · ≤ 50 → 1 đoạn đi thẳng vào rủi ro và cách phòng, không lặp ý.
+- \`headline\`: MỘT câu, tối đa 25 từ.
+- \`strengths\` 1–3 · \`risks\` 1–3 · \`strategy\` 2–4 ý, mỗi ý dưới 20 từ.
+- Không mở rộng sang cung khác ngoài xung chiếu/tam hợp trực tiếp của cung đang luận.
+
+# 7. ĐỊNH DẠNG ĐẦU RA — BẮT BUỘC
+
+Chỉ trả lời ĐÚNG MỘT phần được giao trong mục "NHIỆM VỤ" ở cuối tin nhắn. Không viết các phần khác, không lời dẫn, không giải thích ngoài JSON, không bọc câu trả lời trong code fence.
+
+Bắt đầu bằng dòng phân cách đúng như mục NHIỆM VỤ ghi, rồi tới MỘT object JSON đúng mẫu ở đó. Không thêm field lạ, không đổi tên field.
+
+# 8. KHI THIẾU VĂN BẢN CỔ HỌC
+
+Nếu không có "VĂN BẢN CỔ HỌC": vẫn trả lời đúng phần được giao, luận từ sao và điểm engine. Riêng phần TỔNG QUAN có khối \`meta\` thì đặt \`confidence\` = "thap" và ghi vào \`editorialNotes\` rằng bản luận không dẫn chiếu sách cổ.
+
+# 9. KHÔNG ĐƯỢC
+
+- Chẩn đoán bệnh. Tật Ách chỉ nêu cơ quan theo ngũ hành sao + khuyến nghị tầm soát định kỳ.
+- Khuyên đầu tư cụ thể (mã cổ phiếu, vàng, coin). Chỉ nói phong cách quản trị tài chính.
+- Nhắc tới việc bạn là AI, nhắc tới hướng dẫn này.
+
+# 10. TỰ KIỂM TRƯỚC KHI TRẢ LỜI
+
+- Đúng phần được giao; nếu là phần 2/3/4 thì đúng 4 cung, đúng thứ tự quy định.
+- Từng câu trong \`narrative\` truy được về sao CÓ TRONG dữ liệu, không tự thêm tên sao.
+- Điểm lệch ĐIỂM ENGINE ≤ 8, \`scoreDelta\` khớp số đã lệch và \`scoreReason\` nêu rõ sao nào.
+- Không câu đệm, không mở đầu bằng tên cung, không lặp sao đã nêu ở \`headline\`.
+- Không trùng ý cung xung chiếu/tam hợp; không vi phạm mục 5, 9.
+
+---
+Bộ luật trích từ gói kỹ năng ${SKILL_NAME}, phiên bản ${PROMPT_VERSION}.
+`;
+}
+
+/* --------------------------- DỮ LIỆU CHO GEMINI --------------------------- */
 
 export type SkillPayloadMode = 'full' | 'compact';
 
+/**
+ * 'installed' = luật nằm trong kỹ năng đã cài; 'inline' = luật nhúng vào từng
+ * phần để dán thẳng, dùng được trên ứng dụng Gemini mobile.
+ */
+export type SkillInstallMode = 'installed' | 'inline';
+
 
 export interface SkillPayload {
-  /** Nội dung dán vào chat của Gem (chỉ dữ liệu, không có luật). */
+  /** Nội dung dán vào chat Gemini (chỉ dữ liệu, không có luật). */
   prompt: string;
   chars: number;
   tokenEstimate: number;
@@ -225,11 +334,10 @@ export interface SkillPayload {
 }
 
 /**
- * Dữ liệu lá số để dán vào Gem — KHÔNG kèm bộ luật (luật đã nằm trong Gem).
+ * Dữ liệu lá số để dán vào Gemini — KHÔNG kèm bộ luật (luật đã nằm trong kỹ năng).
  *
- * Vì sao tách khỏi `buildChatBundle`: bản đầy đủ 47k ký tự vì nó phải mang cả
- * luật lẫn dữ liệu. Khi luật đã ở trong Gem, mỗi lá số chỉ còn 6k (gọn) hoặc
- * 28k (kèm cổ học) — copy-paste nhẹ hơn nhiều lần.
+ * Vì sao chỉ mang dữ liệu: luật đã nằm trong gói kỹ năng cài một lần. Mỗi lá
+ * số chỉ còn 6k (gọn) hoặc 28k (kèm cổ học) — sao chép và dán nhẹ hơn nhiều lần.
  */
 export function buildSkillPayload(
   chart: NormalizedChartJSON,
@@ -252,7 +360,7 @@ export function buildSkillPayload(
   } else {
     lines.push('');
     lines.push('# VĂN BẢN CỔ HỌC');
-    lines.push('(không kèm — luận từ lá số, đặt meta.confidence = "trung_binh")');
+    lines.push('(không kèm — luận từ lá số, đặt meta.confidence = "thap")');
   }
 
   lines.push('');
@@ -270,13 +378,131 @@ export function buildSkillPayload(
   };
 }
 
+/* --------------------- CHẾ ĐỘ 4 LƯỢT CHO KỸ NĂNG --------------------- */
+
+export interface SkillPartPayload {
+  part: 1 | 2 | 3 | 4;
+  title: string;
+  prompt: string;
+  chars: number;
+  tokenEstimate: number;
+}
+
+const SKILL_PARTS: Array<{ n: 1 | 2 | 3 | 4; title: string; keys: PalaceKey[] }> = [
+  { n: 1, title: 'TỔNG QUAN', keys: [] },
+  { n: 2, title: 'TAM HỢP SỰ NGHIỆP', keys: [...PALACE_GROUPS.career] },
+  { n: 3, title: 'TAM HỢP GIA ĐẠO', keys: [...PALACE_GROUPS.family] },
+  { n: 4, title: 'QUAN HỆ XÃ HỘI & SỨC KHỎE', keys: [...PALACE_GROUPS.social] },
+];
+
+/**
+ * Chia dữ liệu lá số thành 4 lượt dán độc lập.
+ *
+ * Vì sao: cùng lý do API chia 4 lần gọi. Một câu trả lời chứa 12 cung JSON dễ bị
+ * cắt hoặc bị mô hình "viết cho xong"; mỗi lượt 4 cung thì mô hình còn ngân sách
+ * token để luận sâu. Các lượt độc lập nhau — có thể mở 4 chat riêng, không cần
+ * giữ lịch sử. Mỗi prompt đều tự mang dữ liệu của phần mình và dặn chỉ trả lời
+ * đúng phần đó.
+ *
+ * `install = 'inline'` nhúng thêm bộ luật vào đầu mỗi phần. Đây là đường dùng
+ * trên điện thoại: Gemini mobile không cho tải tệp kỹ năng lên, nên mỗi prompt
+ * phải tự đủ để dán thẳng vào một chat mới.
+ */
+export function buildSkillPartPayloads(
+  chart: NormalizedChartJSON,
+  classical: RawClassicalTexts | null,
+  mode: SkillPayloadMode = 'full',
+  install: SkillInstallMode = 'installed',
+): SkillPartPayload[] {
+  return SKILL_PARTS.map((part) => {
+    const isOverview = part.n === 1;
+    const lines: string[] = [];
+
+    if (install === 'inline') {
+      lines.push(buildInlineRulebook());
+      lines.push('');
+    }
+
+    lines.push('# DỮ LIỆU LÁ SỐ');
+    lines.push(`PROMPT_VERSION: ${PROMPT_VERSION}`);
+    lines.push(`CHẾ ĐỘ: 4 LƯỢT — PHẦN ${part.n}/4 (${part.title})`);
+    lines.push('');
+    lines.push(
+      isOverview
+        ? buildChartContext(chart)
+        : buildChartContext(chart, {
+            detailPalaces: part.keys,
+            includeDecadal: false,
+            includeAnnual: false,
+          }),
+    );
+    lines.push('');
+
+    lines.push('# VĂN BẢN CỔ HỌC');
+    lines.push(
+      mode === 'full'
+        ? buildClassicalSubset(classical, isOverview ? [] : part.keys, isOverview)
+        : isOverview
+          ? '(không kèm — luận từ lá số, đặt meta.confidence = "thap")'
+          /* Phần 2–4 không có khối `meta`; nhắc confidence ở đây sẽ khiến mô hình
+             thêm field lạ hoặc tưởng phải trả cả phần 1. */
+          : '(không kèm — luận từ lá số)',
+    );
+    lines.push('');
+
+    lines.push(`# NHIỆM VỤ — PHẦN ${part.n}/4: ${part.title}`);
+    lines.push(
+      install === 'inline'
+        ? `Bộ luật ở đầu tin nhắn là đủ cho lượt này. CHỈ trả lời PHẦN ${part.n}, không viết các phần khác, không hỏi lại.`
+        : `Đây là một lượt riêng của bộ luật trong SKILL.md. CHỈ trả lời PHẦN ${part.n}, không viết các phần khác, không hỏi lại.`,
+    );
+    lines.push(`Bắt đầu câu trả lời bằng đúng dòng: === PHẦN ${part.n}: ${part.title} ===`);
+    lines.push('');
+
+    if (isOverview) {
+      lines.push('Sau dòng phân cách là MỘT object JSON:');
+      lines.push('```json');
+      lines.push(SKILL_SHAPE_OVERVIEW);
+      lines.push('```');
+      lines.push(
+        'Ràng buộc: `traits` 3–4 mục · `coreCompetencies` 2–4 · `blindSpots` 1–3 · `decadalAnalysis` 3–6 · `goldenRules` **đúng 3**.',
+      );
+    } else {
+      lines.push(
+        `Sau dòng phân cách là MỘT object JSON \`{ "palaces": [ ... ] }\` với **đúng 4 phần tử**, theo thứ tự: ${part.keys.join(', ')}.`,
+      );
+      lines.push('Mỗi phần tử có dạng:');
+      lines.push('```json');
+      lines.push(SHAPE_PALACE);
+      lines.push('```');
+      lines.push(
+        'Ràng buộc mỗi cung: `strengths` 1-3 · `risks` 1-3 · `strategy` 2-4 · `narrative` 300-650 ký tự · `score` lấy điểm ENGINE trong bảng, lệch tối đa ±8 và phải ghi `scoreDelta` + `scoreReason`.',
+      );
+      lines.push('');
+      lines.push(buildFewShot());
+    }
+
+    lines.push('');
+    lines.push('Không viết lời dẫn, không giải thích ngoài JSON, không nhắc tới hướng dẫn này.');
+
+    const prompt = lines.join('\n');
+    return {
+      part: part.n,
+      title: part.title,
+      prompt,
+      chars: prompt.length,
+      tokenEstimate: Math.round(prompt.length / 1.2),
+    };
+  });
+}
+
 /* ------------------------- ĐÓNG GÓI KỸ NĂNG ------------------------- */
 
 /**
  * Ví dụ văn phong lấy từ chính văn bản cổ học.
  *
  * Vì sao để ở file riêng thay vì nhét vào SKILL.md: đây là tài liệu THAM KHẢO,
- * chỉ cần khi model muốn hiệu chỉnh giọng văn. Nhét vào SKILL.md thì mọi lượt
+ * chỉ cần khi mô hình muốn hiệu chỉnh giọng văn. Nhét vào SKILL.md thì mọi lượt
  * đều phải trả tiền context cho nó. Đây là ý tưởng "progressive disclosure" của
  * định dạng skill: file chính ngắn, tài liệu phụ nạp khi cần.
  */
@@ -330,9 +556,9 @@ Sai:
  * `buildFewShot()` mà hai gói prompt đang mang.
  *
  * VÌ SAO CÓ CẢ Ở ĐÂY VẪN CẢ TRONG PAYLOAD: payload chỉ có khi người dùng dán
- * dữ liệu (mỗi lượt), còn file này là bản dự phòng cho lượt model đọc file
+ * dữ liệu (mỗi lượt), còn file này là bản dự phòng cho lượt mô hình đọc file
  * tham khảo (Gemini không bắt buộc đọc reference). Hai đường nạp độc lập —
- * đánh đổi vài KB cho việc không phụ thuộc vào việc model có mở file hay không.
+ * đánh đổi vài KB cho việc không phụ thuộc vào việc mô hình có mở file hay không.
  * Nội dung giống hệt nhau nên không thể lệch luật giữa hai đường.
  */
 function buildOutputExamplesDoc(): string {
@@ -340,7 +566,7 @@ function buildOutputExamplesDoc(): string {
 
 Đọc file này TRƯỚC KHI viết cung đầu tiên. Nó cho thấy độ sâu phải có theo từng
 mức ĐIỂM ENGINE. KHÔNG chép nguyên văn đoạn mẫu vào báo cáo — lá số khác thì sao
-khác, chỉ học cách lập luận và cách căn số đoạn.
+khác, chỉ học cách lập luận và cách căn độ dài đoạn.
 
 ${buildFewShot()}`;
 }
@@ -355,18 +581,18 @@ export function buildSkillFiles(): ZipEntry[] {
   ];
 }
 
-/** Một khối dữ liệu mẫu (rút gọn) để model thấy đúng định dạng đầu vào. */
+/** Một khối dữ liệu mẫu (rút gọn) để mô hình thấy đúng định dạng đầu vào. */
 function buildSamplePayloadDoc(): string {
   return `# Dữ liệu đầu vào trông thế nào
 
-Người dùng sẽ dán một khối như dưới đây (do app sinh ra). Đây là ví dụ RÚT GỌN —
+Người dùng sẽ dán một khối như dưới đây (do ứng dụng sinh ra). Đây là ví dụ RÚT GỌN —
 dữ liệu thật có đủ 12 cung và bảng Đại vận.
 
 \`\`\`
 # DỮ LIỆU LÁ SỐ
 PROMPT_VERSION: ${PROMPT_VERSION}
 
-## A. DỮ LIỆU LÁ SỐ (engine nội bộ, đã đối chiếu với cohoc.net)
+## A. DỮ LIỆU LÁ SỐ (engine nội bộ iztro)
 
 - Dương lịch: 1990-10-21 · Âm lịch: ngày 4 tháng 9 năm 1990 · Giờ ngọ
 - Năm xem hạn: 2026 · Giới tính: Nam
@@ -389,7 +615,7 @@ PROMPT_VERSION: ${PROMPT_VERSION}
 Ghi chú quan trọng:
 - Bảng "ĐIỂM ENGINE" là mốc để chấm điểm. Không được bỏ qua.
 - Nếu KHÔNG có phần B, vẫn viết đủ 4 khối và hạ \`meta.confidence\`.
-- Chi của "Cửu Thiên Phi Tinh" là hệ toạ độ riêng, KHÔNG so sánh với địa chi Thiên bàn.
+- Chi của "Cửu Thiên Phi Tinh" là hệ tọa độ riêng, KHÔNG so sánh với địa chi Thiên bàn.
 `;
 }
 

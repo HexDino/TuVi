@@ -1,22 +1,16 @@
 /**
  * POST /api/report/import
  * ---------------------------------------------------------------------------
- * Nhận câu trả lời từ chat web, tách 4 khối JSON, validate, ghép thành báo cáo
- * và LƯU CACHE. Từ lần này trở đi, lá số đó phục vụ 0 đồng qua đúng đường SSE
- * của app.
- *
- * Điểm quan trọng: báo cáo nhập tay được lưu dưới khoá `chat-manual`, độc lập
- * với model. Đổi model trong .env không làm mất bản đã viết.
+ * Nhận câu trả lời từ Gemini, tách 4 khối JSON, validate, đối chiếu lá số và
+ * ghép thành báo cáo. Không gọi mô hình, không lưu cache.
  */
 
 import { z } from 'zod';
 import { ChartRequestSchema } from '@/schemas/request.schema';
 import { analyzeChart } from '@/lib/tuvi/pipeline';
-import { parseChatResponse, chatCacheKey } from '@/lib/tuvi/chat-bundle';
-import { reportCache } from '@/lib/tuvi/report-cache';
+import { parseChatResponse } from '@/lib/tuvi/chat-bundle';
 import { checkReportQuality, qualityForClient } from '@/lib/tuvi/report-quality';
-import type { AgentUsage } from '@/lib/tuvi/astrology-agent.service';
-import { PROMPT_VERSION } from '@/lib/tuvi/prompts';
+import { alignReportToChart } from '@/lib/tuvi/report-assembly';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -31,7 +25,7 @@ export async function POST(req: Request) {
   try {
     body = await req.json();
   } catch {
-    return Response.json({ error: 'Body không phải JSON hợp lệ' }, { status: 400 });
+    return Response.json({ error: 'Nội dung gửi lên không phải JSON hợp lệ' }, { status: 400 });
   }
 
   const parsed = ImportSchema.safeParse(body);
@@ -52,6 +46,7 @@ export async function POST(req: Request) {
         hour: input.hour,
         minute: input.minute,
         isLeapMonth: input.isLeapMonth,
+        fixLeap: input.fixLeap,
         viewingYear: input.viewingYear,
       },
       { skipClassical: input.skipClassical, viewMode: input.viewMode },
@@ -68,37 +63,19 @@ export async function POST(req: Request) {
     return Response.json({ error: result.error, detail: result.detail }, { status: 422 });
   }
 
-  /* Token = 0: báo cáo do chat viết, không đi qua API. Ghi rõ để UI hiển thị
-     đúng và để sau này không ai tưởng đây là lượt gọi model có tính tiền. */
-  const usage: AgentUsage = {
-    promptTokens: 0,
-    completionTokens: 0,
-    totalTokens: 0,
-    promptVersion: PROMPT_VERSION,
-    modelId: 'chat-manual',
-    calls: 0,
-    manual: true,
-  };
+  /* Trường dữ liệu (ngày, giới tính, tên cung, chính tinh) phải lấy từ engine:
+     chat có thể chép sai một chỗ, và báo cáo sẽ mâu thuẫn với lá số ngay bên
+     cạnh. Nội dung luận giải và `confidence` thì giữ nguyên của mô hình. */
+  const report = alignReportToChart(result.report, chart);
 
-  /* Chấm chất lượng TRƯỚC khi lưu: lỗi cấu trúc Zod đã chặn ở trên, nhưng các
-     lỗi nội dung (evidence không có thật, sao nhác sang cung khác, dông dài) chỉ
-     thấy được ở đây. Vẫn lưu — báo cáo có dùng được — nhưng trả kèm bảng điểm để
-     người dùng biết phải đọc lại chỗ nào. */
-  const quality = checkReportQuality(result.report, chart);
-
-  const key = chatCacheKey(chart, classical, input.name);
-  await reportCache.set(key, {
-    report: result.report,
-    usage,
-    cachedAt: new Date().toISOString(),
-    signature: `${chart.meta.solarDate}|${chart.meta.gender}|${chart.meta.timeName}|chat`,
-  });
+  /* Lỗi cấu trúc Zod đã chặn ở trên, nhưng các lỗi nội dung (evidence không có
+     thật, sao nhắc sang cung khác, dông dài) chỉ thấy được ở đây. Vẫn trả báo
+     cáo — nó dùng được — nhưng kèm bảng điểm để người dùng biết đọc lại chỗ nào. */
+  const quality = checkReportQuality(report, chart, classical);
 
   return Response.json({
     ok: true,
-    report: result.report,
-    usage,
-    cacheKey: key,
+    report,
     quality: qualityForClient(quality),
   });
 }

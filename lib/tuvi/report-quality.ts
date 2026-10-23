@@ -1,15 +1,14 @@
 /**
  * lib/tuvi/report-quality.ts — KIỂM TRA CHẤT LƯỢNG BÁO CÁO SAU KHI SINH
  * ---------------------------------------------------------------------------
- * VÌ SAO CẦN: đến nay mọi thứ phụ thuộc model "tự làm đúng". Không có vòng kiểm
+ * VÌ SAO CẦN: đến nay mọi thứ phụ thuộc mô hình "tự làm đúng". Không có vòng kiểm
  * nên các lỗi sau chỉ phát hiện được khi người dùng đọc:
  *   - narrative dồn thành một khối (đã gặp thật, 22/10)
  *   - evidence nêu sao không có trong lá số (editorialNotes từng ghi chuyện này)
  *   - 12 cung nhận cùng một khuôn chiều sâu dù điểm chênh 29 → 75
  *
  * NÊN DÙNG Ở ĐÂU:
- *   - `/api/report` (SSE) — sau mỗi lần sinh xong, gửi kèm event `quality`;
- *   - `/api/report/import` khi người dùng dán báo cáo từ chat về;
+ *   - `/api/report/import` khi người dùng dán báo cáo từ Gemini về;
  *   - `scripts/test-pipeline.ts` — chấm MOCK_REPORT và các biến thể cố tình làm
  *     hỏng, để tiêu chí sửa mà không ai canh thì gãy ngay ở đây.
  *
@@ -19,7 +18,7 @@
  * ---------------------------------------------------------------------------
  */
 
-import type { NormalizedChartJSON } from '@/types/tuvi';
+import type { NormalizedChartJSON, RawClassicalTexts } from '@/types/tuvi';
 import type { TuViFullReport } from '@/schemas/report.schema';
 
 export interface QualityIssue {
@@ -38,10 +37,9 @@ export interface QualityResult {
 /**
  * Hình dạng gửi lên client: chỉ kèm các tiêu chí RỚT.
  *
- * Vì sao phải có hàm này: đường nhập tay (`/api/report/import`) và đường stream
- * (`/api/report`) là hai nơi khác nhau, nhưng UI chỉ render MỘT bảng điểm. Nếu
- * mỗi nơi tự lọc `issues` một kiểu thì hai đường sẽ cho hai hình dạng khác nhau
- * và UI phải đoán — loại lệch này rất khó thấy vì nó nằm ở tầng JSON.
+ * Vì sao phải có hàm này: UI chỉ render các tiêu chí RỚT, còn API vẫn giữ đủ
+ * 12 tiêu chí để test và gỡ lỗi. Tách một chỗ lọc duy nhất để hai bên không lệch
+ * nhau — loại lệch này rất khó thấy vì nó nằm ở tầng JSON.
  */
 export type QualitySummary = Pick<QualityResult, 'passed' | 'total'> & { issues: QualityIssue[] };
 
@@ -61,10 +59,11 @@ export function qualityForClient(result: QualityResult): QualitySummary {
  */
 export const QUALITY_LABEL: Record<string, string> = {
   'count-12': 'đủ 12 cung',
-  'len-narrative': 'độ dài narrative 300–650 ký tự',
+  'len-narrative': 'độ dài phần luận 300–650 ký tự',
   'len-spread': 'cung mạnh viết dài hơn cung yếu',
-  'evidence-real': 'evidence truy được về lá số',
-  'score-delta': 'điểm lệch điểm engine ≤ 8',
+  'evidence-real': 'dẫn chứng truy được về lá số',
+  'quote-real': 'câu phú dẫn đúng văn bản cổ học',
+  'score-delta': 'điểm lệch engine ≤ 8',
   'star-scope': 'sao nhắc thuộc cung / tam hợp / xung chiếu',
   'dup-sentence': 'không trùng câu giữa các cung',
   'ban-phrase': 'không câu đệm',
@@ -96,6 +95,11 @@ const OPPOSITE: Record<string, string> = {
 /** Chuẩn hoá một đoạn văn để so khớp: thường, bỏ dấu cách thừa. */
 function norm(text: string): string {
   return text.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+/** So câu phú với nguồn: bỏ hết khoảng trắng, dấu câu và ký hiệu. */
+function normQuote(text: string): string {
+  return text.toLowerCase().replace(/[\s\p{P}\p{S}]/gu, '');
 }
 
 /** Tách câu, chuẩn hoá, chỉ giữ câu có ≥ 8 từ. */
@@ -141,6 +145,7 @@ function bannedPerson(text: string): string[] {
 export function checkReportQuality(
   report: TuViFullReport,
   chart: NormalizedChartJSON,
+  classical?: RawClassicalTexts | null,
 ): QualityResult {
   const issues: QualityIssue[] = [];
   const push = (id: string, pass: boolean, detail: string) => issues.push({ id, pass, detail });
@@ -211,6 +216,39 @@ export function checkReportQuality(
     fake.length === 0,
     fake.length ? `${fake.length} mục không truy được: ${fake.slice(0, 3).join(' · ')}` : 'mọi evidence truy được về sao/trạng thái trong lá số',
   );
+
+  /* ---- 4b. câu phú dẫn phải có thật trong văn bản cổ học ----
+     Lỗi thật: mô hình hay gán một câu phú chữ Hán "nghe hợp" cho cách cục, nhưng
+     câu đó không hề có trong nguồn. Người đọc không kiểm được vì phần lớn không
+     biết chữ Hán — nên phải đối chiếu tự động. Chỉ so khi báo cáo CÓ dẫn quote;
+     báo cáo không dẫn câu phú vẫn đạt (không có gì để bịa). */
+  const quote = report.overview.cachCuc.classicalQuote?.trim();
+  const quoteMeaning = report.overview.cachCuc.quoteMeaning?.trim();
+  if (!quote) {
+    push('quote-real', true, 'không dẫn câu phú');
+  } else if (!quoteMeaning) {
+    push('quote-real', false, `dẫn "${quote.slice(0, 40)}" nhưng thiếu quoteMeaning`);
+  } else if (!classical) {
+    push('quote-real', false, `dẫn "${quote.slice(0, 40)}" nhưng không có văn bản cổ học để đối chiếu`);
+  } else {
+    const passages = [
+      ...classical.overview,
+      ...classical.bodyPalace,
+      ...Object.values(classical.palaces).flatMap((ps) => ps ?? []),
+    ];
+    const sourceNorm = normQuote(passages.map((p) => `${p.heading} ${p.text}`).join('\n'));
+    const quoteNorm = normQuote(quote);
+    const pass = quoteNorm.length >= 4 && sourceNorm.includes(quoteNorm);
+    push(
+      'quote-real',
+      pass,
+      pass
+        ? `câu phú có trong nguồn cổ học: "${quote.slice(0, 40)}"`
+        : quoteNorm.length < 4
+          ? `câu phú quá ngắn để đối chiếu: "${quote}"`
+          : `không tìm thấy câu phú trong văn bản cổ học: "${quote.slice(0, 40)}"`,
+    );
+  }
 
   /* ---- 5. điểm lệch engine ≤ 8 ---- */
   const overDelta: string[] = [];

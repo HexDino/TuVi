@@ -1,7 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { CalendarType, Gender } from '@/types/tuvi';
+import { DatePicker } from './ui/DatePicker';
+import { NumberStepper } from './ui/NumberStepper';
+import { SelectMenu } from './ui/SelectMenu';
 
 export interface BirthFormValue {
   name: string;
@@ -11,51 +14,106 @@ export interface BirthFormValue {
   hour: number;
   minute: number;
   viewingYear: number;
+  isLeapMonth: boolean;
+  /** iztro: true = qua ngày 16 của tháng nhuận thì tính sang tháng kế. */
+  fixLeap: boolean;
 }
 
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const CHI = [
+  { name: 'Tý', range: '23–1' },
+  { name: 'Sửu', range: '1–3' },
+  { name: 'Dần', range: '3–5' },
+  { name: 'Mão', range: '5–7' },
+  { name: 'Thìn', range: '7–9' },
+  { name: 'Tỵ', range: '9–11' },
+  { name: 'Ngọ', range: '11–13' },
+  { name: 'Mùi', range: '13–15' },
+  { name: 'Thân', range: '15–17' },
+  { name: 'Dậu', range: '17–19' },
+  { name: 'Tuất', range: '19–21' },
+  { name: 'Hợi', range: '21–23' },
+];
 
-/** Nhãn giờ theo 12 chi để người dùng dễ chọn đúng. */
-function hourLabel(h: number): string {
-  const ranges = [
-    '23–1 · Tý',
-    '1–3 · Sửu',
-    '3–5 · Dần',
-    '5–7 · Mão',
-    '7–9 · Thìn',
-    '9–11 · Tỵ',
-    '11–13 · Ngọ',
-    '13–15 · Mùi',
-    '15–17 · Thân',
-    '17–19 · Dậu',
-    '19–21 · Tuất',
-    '21–23 · Hợi',
-  ];
-  const idx = h === 23 ? 0 : h === 0 ? 0 : Math.floor((h + 1) / 2);
-  return `${String(h).padStart(2, '0')}:00 — ${ranges[idx] ?? ''}`;
+function chiIndexOf(hour: number): number {
+  return hour === 23 || hour === 0 ? 0 : Math.floor((hour + 1) / 2);
+}
+
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => {
+  const chi = CHI[chiIndexOf(hour)];
+  return {
+    value: String(hour),
+    label: `${String(hour).padStart(2, '0')}:00`,
+    hint: `${chi.name} · ${chi.range}`,
+  };
+});
+
+const LEAP_OPTIONS = [
+  { value: '1', label: 'Từ ngày 16 trở đi tính sang tháng kế tiếp' },
+  { value: '0', label: 'Giữ nguyên trong tháng nhuận' },
+];
+
+function padDate(d: string): string {
+  const m = d.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (!m) return d;
+  return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
 }
 
 export function BirthForm({
   onSubmit,
   loading,
+  initial,
 }: {
   onSubmit: (v: BirthFormValue) => void;
   loading: boolean;
+  /** Thông tin của lá số đang mở (từ URL hoặc lần gửi gần nhất) để form không lệch với bàn lá số. */
+  initial?: BirthFormValue | null;
 }) {
-  const [name, setName] = useState('');
-  const [gender, setGender] = useState<Gender>('nam');
-  const [calendarType, setCalendarType] = useState<CalendarType>('solar');
-  const [date, setDate] = useState('1990-10-21');
-  const [hour, setHour] = useState(12);
-  const [minute, setMinute] = useState(0);
-  const [viewingYear, setViewingYear] = useState(new Date().getFullYear());
+  const [name, setName] = useState(initial?.name ?? '');
+  const [gender, setGender] = useState<Gender>(initial?.gender ?? 'nam');
+  const [calendarType, setCalendarType] = useState<CalendarType>(initial?.calendarType ?? 'solar');
+  const [date, setDate] = useState(initial?.date ?? '1990-10-21');
+  const [hour, setHour] = useState(initial?.hour ?? 12);
+  const [minute, setMinute] = useState(initial?.minute ?? 0);
+  const [viewingYear, setViewingYear] = useState(initial?.viewingYear ?? new Date().getFullYear());
+  const [isLeapMonth, setIsLeapMonth] = useState(initial?.isLeapMonth ?? false);
+  const [fixLeap, setFixLeap] = useState(initial?.fixLeap ?? true);
+
+  useEffect(() => {
+    if (!initial) return;
+    setName(initial.name);
+    setGender(initial.gender);
+    setCalendarType(initial.calendarType);
+    setDate(initial.date);
+    setHour(initial.hour);
+    setMinute(initial.minute);
+    setViewingYear(initial.viewingYear);
+    setIsLeapMonth(initial.isLeapMonth);
+    setFixLeap(initial.fixLeap);
+  }, [initial]);
+
+  const pickCalendar = (next: CalendarType) => {
+    if (next === calendarType) return;
+    setCalendarType(next);
+    setDate(padDate(date));
+    if (next === 'solar') setIsLeapMonth(false);
+  };
 
   return (
     <form
       className="panel panel-pad"
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ name, gender, calendarType, date, hour, minute, viewingYear });
+        onSubmit({
+          name,
+          gender,
+          calendarType,
+          date: date.trim(),
+          hour,
+          minute,
+          viewingYear,
+          isLeapMonth: calendarType === 'lunar' && isLeapMonth,
+          fixLeap: calendarType === 'lunar' ? fixLeap : true,
+        });
       }}
     >
       <div className="panel-title">Thông tin sinh</div>
@@ -89,14 +147,14 @@ export function BirthForm({
           <button
             type="button"
             data-active={calendarType === 'solar'}
-            onClick={() => setCalendarType('solar')}
+            onClick={() => pickCalendar('solar')}
           >
             Dương lịch
           </button>
           <button
             type="button"
             data-active={calendarType === 'lunar'}
-            onClick={() => setCalendarType('lunar')}
+            onClick={() => pickCalendar('lunar')}
           >
             Âm lịch
           </button>
@@ -104,55 +162,103 @@ export function BirthForm({
       </div>
 
       <div className="field">
-        <label htmlFor="date">{calendarType === 'solar' ? 'Ngày sinh dương lịch' : 'Ngày sinh âm lịch'}</label>
-        <input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+        <label htmlFor="date">
+          {calendarType === 'solar' ? 'Ngày sinh dương lịch' : 'Ngày sinh âm lịch'}
+        </label>
+        {calendarType === 'solar' ? (
+          <DatePicker
+            id="date"
+            label="Ngày sinh dương lịch"
+            value={date}
+            onChange={setDate}
+            min="1900-01-31"
+            max="2100-12-31"
+          />
+        ) : (
+          <input
+            id="date"
+            type="text"
+            inputMode="numeric"
+            placeholder="1990-9-4"
+            pattern="\d{4}-\d{1,2}-\d{1,2}"
+            title="Nhập theo dạng năm-tháng-ngày, ví dụ: 1990-9-4"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            onBlur={(e) => setDate(padDate(e.target.value.trim()))}
+            required
+          />
+        )}
+        {calendarType === 'lunar' && (
+          <span className="hint" style={{ marginTop: 6, display: 'block' }}>
+            Dạng năm-tháng-ngày (cho phép ngày 30), ví dụ: 1990-9-4.
+          </span>
+        )}
       </div>
+
+      {calendarType === 'lunar' && (
+        <div className="field">
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={isLeapMonth}
+              onChange={(e) => setIsLeapMonth(e.target.checked)}
+            />
+            <span className="check-box" aria-hidden="true" />
+            <span>Tháng nhuận</span>
+          </label>
+          {isLeapMonth && (
+            <div className="leap-policy">
+              <SelectMenu
+                id="fixLeap"
+                value={fixLeap ? '1' : '0'}
+                onChange={(next) => setFixLeap(next === '1')}
+                options={LEAP_OPTIONS}
+                ariaLabel="Cách xử lý ngày trong tháng nhuận"
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="field">
         <label htmlFor="hour">Giờ sinh</label>
-        <select id="hour" value={hour} onChange={(e) => setHour(Number(e.target.value))}>
-          {HOURS.map((h) => (
-            <option key={h} value={h}>
-              {hourLabel(h)}
-            </option>
-          ))}
-        </select>
+        <SelectMenu
+          id="hour"
+          value={String(hour)}
+          options={HOUR_OPTIONS}
+          onChange={(next) => setHour(Number(next))}
+          ariaLabel="Giờ sinh"
+        />
       </div>
 
       <div className="row-2">
         <div className="field">
           <label htmlFor="minute">Phút</label>
-          <input
+          <NumberStepper
             id="minute"
-            type="number"
+            value={minute}
             min={0}
             max={59}
-            value={minute}
-            onChange={(e) => setMinute(Number(e.target.value))}
+            onChange={setMinute}
+            ariaLabel="Phút sinh"
           />
         </div>
         <div className="field">
           <label htmlFor="year">Năm xem hạn</label>
-          <input
+          <NumberStepper
             id="year"
-            type="number"
-            min={1900}
-            max={2200}
             value={viewingYear}
-            onChange={(e) => setViewingYear(Number(e.target.value))}
+            min={1900}
+            max={2100}
+            onChange={setViewingYear}
+            ariaLabel="Năm xem hạn"
           />
         </div>
       </div>
 
       <button className="submit" type="submit" disabled={loading}>
-        {loading ? 'Đang lập lá số…' : 'Lập lá số & luận giải'}
+        {loading ? 'Đang lập lá số…' : 'Lập lá số'}
       </button>
-
-      <p className="hint">
-        Lá số được an bằng engine nội bộ (iztro, tiếng Việt), sau đó đối chiếu tự động với bảng lá số của
-        tuvi.cohoc.net. Nếu hai bên lệch nhau, hệ thống cảnh báo ngay — thường do giờ sinh hoặc do khác
-        phái an sao.
-      </p>
     </form>
   );
 }

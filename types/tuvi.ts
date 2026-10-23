@@ -167,9 +167,9 @@ export interface ThienBan {
   cuc: string;
   /** Ngũ hành của Cục. */
   cucElement: FiveElement;
-  /** Chủ mệnh (sao). */
+  /** Mệnh chủ (sao). */
   menhChu: string;
-  /** Chủ thân (sao). */
+  /** Thân chủ (sao). */
   thanChu: string;
   /** "Dương Nam" | "Âm Nam" | "Dương Nữ" | "Âm Nữ". */
   amDuong: string;

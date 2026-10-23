@@ -1,13 +1,13 @@
 # Dữ liệu đầu vào trông thế nào
 
-Người dùng sẽ dán một khối như dưới đây (do app sinh ra). Đây là ví dụ RÚT GỌN —
+Người dùng sẽ dán một khối như dưới đây (do ứng dụng sinh ra). Đây là ví dụ RÚT GỌN —
 dữ liệu thật có đủ 12 cung và bảng Đại vận.
 
 ```
 # DỮ LIỆU LÁ SỐ
 PROMPT_VERSION: 1.0.0
 
-## A. DỮ LIỆU LÁ SỐ (engine nội bộ, đã đối chiếu với cohoc.net)
+## A. DỮ LIỆU LÁ SỐ (engine nội bộ iztro)
 
 - Dương lịch: 1990-10-21 · Âm lịch: ngày 4 tháng 9 năm 1990 · Giờ ngọ
 - Năm xem hạn: 2026 · Giới tính: Nam
@@ -30,4 +30,4 @@ PROMPT_VERSION: 1.0.0
 Ghi chú quan trọng:
 - Bảng "ĐIỂM ENGINE" là mốc để chấm điểm. Không được bỏ qua.
 - Nếu KHÔNG có phần B, vẫn viết đủ 4 khối và hạ `meta.confidence`.
-- Chi của "Cửu Thiên Phi Tinh" là hệ toạ độ riêng, KHÔNG so sánh với địa chi Thiên bàn.
+- Chi của "Cửu Thiên Phi Tinh" là hệ tọa độ riêng, KHÔNG so sánh với địa chi Thiên bàn.

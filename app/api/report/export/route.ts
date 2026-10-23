@@ -1,27 +1,28 @@
 /**
  * POST /api/report/export
  * ---------------------------------------------------------------------------
- * Soạn "gói chat": prompt đầy đủ để người dùng dán vào chat web (Claude, Gemini,
- * Grok…), cùng khoá cache mà báo cáo nhập về sẽ được lưu dưới đó.
+ * Soạn dữ liệu lá số để dán vào Gemini.
  *
- * Vì sao có route này: chat web không có API và điều khoản cấm tự động hoá, nên
- * đây là con đường hợp lệ duy nhất để dùng gói chat đã trả tiền — con người tự
- * copy-paste. Đổi lại: lá số đó về sau phục vụ 0 đồng.
+ * Hai đường, tuỳ người dùng có cài kỹ năng hay không:
+ *   - 'installed' (mặc định): luật nằm trong SKILL.md đã cài → payload chỉ mang
+ *     dữ liệu, nhẹ hơn nhiều.
+ *   - 'inline': mỗi phần mang luôn bộ luật ở đầu tin nhắn → dán thẳng được, chạy
+ *     trên ứng dụng Gemini mobile (nơi không tải tệp kỹ năng lên được). Vì mỗi
+ *     phần phải tự chứa cả luật lẫn dữ liệu nên chỉ có bản 4 lượt — một lượt sẽ
+ *     vượt ngân sách ký tự.
  */
 
 import { z } from 'zod';
 import { ChartRequestSchema } from '@/schemas/request.schema';
 import { analyzeChart } from '@/lib/tuvi/pipeline';
-import { buildChatBundle } from '@/lib/tuvi/chat-bundle';
-import { buildSkillPayload } from '@/lib/tuvi/skill-package';
+import { buildSkillPayload, buildSkillPartPayloads } from '@/lib/tuvi/skill-package';
 
-/**
- * 'standalone' = gói đầy đủ (luật + dữ liệu) để dán vào chat thường.
- * 'skill'      = chỉ dữ liệu, vì luật đã nằm trong gói kỹ năng tải lên Gemini.
- */
 const ExportSchema = ChartRequestSchema.extend({
-  target: z.enum(['standalone', 'skill']).optional(),
   skillMode: z.enum(['full', 'compact']).optional(),
+  /** 'parts' = chia 4 lượt (tổng quan + 3 nhóm cung), 'single' = một câu trả lời. */
+  skillDelivery: z.enum(['single', 'parts']).optional(),
+  /** 'inline' = nhúng bộ luật vào từng phần, không cần cài kỹ năng. */
+  skillInstall: z.enum(['installed', 'inline']).optional(),
 });
 
 export const runtime = 'nodejs';
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
   try {
     body = await req.json();
   } catch {
-    return Response.json({ error: 'Body không phải JSON hợp lệ' }, { status: 400 });
+    return Response.json({ error: 'Nội dung gửi lên không phải JSON hợp lệ' }, { status: 400 });
   }
 
   const parsed = ExportSchema.safeParse(body);
@@ -51,18 +52,30 @@ export async function POST(req: Request) {
         hour: input.hour,
         minute: input.minute,
         isLeapMonth: input.isLeapMonth,
+        fixLeap: input.fixLeap,
         viewingYear: input.viewingYear,
       },
       { skipClassical: input.skipClassical, viewMode: input.viewMode },
     );
 
-    if (input.target === 'skill') {
-      const payload = buildSkillPayload(chart, classical, input.skillMode ?? 'full');
-      return Response.json(payload);
+    const mode = input.skillMode ?? 'full';
+    const install = input.skillInstall ?? 'installed';
+    /* Bản inline luôn chia 4 lượt: một lượt duy nhất phải mang cả luật lẫn 12
+       cung thì vượt quá mức an toàn để dán trên điện thoại. */
+    if (install === 'inline' || input.skillDelivery === 'parts') {
+      const parts = buildSkillPartPayloads(chart, classical, mode, install);
+      return Response.json({
+        parts,
+        chars: parts.reduce((sum, p) => sum + p.chars, 0),
+        tokenEstimate: parts.reduce((sum, p) => sum + p.tokenEstimate, 0),
+        mode,
+        install,
+        hasClassical: mode === 'full' && Boolean(classical),
+      });
     }
 
-    const bundle = buildChatBundle({ chart, classical, name: input.name });
-    return Response.json(bundle);
+    const payload = buildSkillPayload(chart, classical, mode);
+    return Response.json(payload);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return Response.json({ error: message }, { status: 500 });

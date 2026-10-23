@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: 'Body không phải JSON hợp lệ' }, { status: 400 });
+    return NextResponse.json({ error: 'Nội dung gửi lên không phải JSON hợp lệ' }, { status: 400 });
   }
 
   const parsed = ChartRequestSchema.safeParse(body);
@@ -39,6 +39,7 @@ export async function POST(req: Request) {
         hour: input.hour,
         minute: input.minute,
         isLeapMonth: input.isLeapMonth,
+        fixLeap: input.fixLeap,
         viewingYear: input.viewingYear,
       },
       {

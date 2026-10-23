@@ -93,10 +93,7 @@ export function StarDrawer({
             )}
           </>
         ) : (
-          <p className="drawer-essence">
-            Chưa có mục từ cho sao này. Bổ sung vào <code>lib/tuvi/star-dictionary.ts</code> để tra
-            cứu được.
-          </p>
+          <p className="drawer-essence">Chưa có mục từ cho sao này.</p>
         )}
       </aside>
     </>

@@ -12,14 +12,10 @@
     "payload:audit": "tsx scripts/payload-audit.ts",
     "cohoc:test": "tsx scripts/test-cohoc.ts",
     "pipeline:test": "tsx scripts/test-pipeline.ts",
-    "report:real": "tsx scripts/test-pipeline.ts --real",
-    "snapshot": "tsx --tsconfig tsconfig.scripts.json scripts/build-snapshot.ts",
-    "prompt:dump": "tsx scripts/test-pipeline.ts --dump-prompt"
+    "ui:test": "tsx scripts/test-ui-date.ts",
+    "snapshot": "tsx --tsconfig tsconfig.scripts.json scripts/build-snapshot.ts"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^1.2.12",
-    "@ai-sdk/openai": "^1.3.24",
-    "ai": "^4.3.19",
     "cheerio": "^1.0.0",
     "iztro": "^2.6.3",
     "next": "^15.4.6",

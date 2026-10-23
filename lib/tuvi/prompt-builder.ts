@@ -1,24 +1,21 @@
 /**
  * lib/tuvi/prompt-builder.ts
  * ---------------------------------------------------------------------------
- * Biến (NormalizedChartJSON + RawClassicalTexts) thành prompt cho LLM.
+ * Biến (NormalizedChartJSON + RawClassicalTexts) thành khối văn bản cho gói
+ * kỹ năng Gemini.
  *
- * Tại sao không nhét thẳng JSON: JSON tốn token gấp ~1.6 lần và LLM đọc bảng
+ * Tại sao không nhét thẳng JSON: JSON tốn token gấp ~1.6 lần và mô hình đọc bảng
  * markdown chính xác hơn với dữ liệu dạng bảng. Ở đây render "bảng nén" —
  * mỗi cung 1 dòng bảng + 1 dòng chi tiết + tối đa 3 ghi chú scoring.
- *
- * Ngân sách mục tiêu: ~2.000 token cho lá số, ~12.000 token cho văn bản cổ học.
  * ---------------------------------------------------------------------------
  */
 
 import type {
-  CohocMetrics,
   NormalizedChartJSON,
   PalaceKey,
   RawClassicalTexts,
 } from '@/types/tuvi';
 import { PALACE_DISPLAY, ELEMENT_LABEL_VI } from './constants';
-import { PALACE_GROUPS } from '@/schemas/report.schema';
 
 /** Tên sao trong cung → chuỗi gọn "Văn Xương (Đắc), Tả Phù". */
 function starLine(stars: Array<{ name: string; brightness: string; mutagen?: string }>): string {
@@ -76,7 +73,7 @@ export function buildChartContext(
   lines.push(
     `- Nạp âm bản mệnh: ${thienBan.napAm} (${thienBan.napAmElement}) → quan hệ với Cục (${thienBan.cucElement}): ${ELEMENT_LABEL_VI[thienBan.cucVsMenh] ?? thienBan.cucVsMenh}`,
   );
-  lines.push(`- Chủ mệnh: ${thienBan.menhChu} | Chủ thân: ${thienBan.thanChu}`);
+  lines.push(`- Mệnh chủ: ${thienBan.menhChu} | Thân chủ: ${thienBan.thanChu}`);
   lines.push(`- Mệnh an tại ${thienBan.menhBranch} | THÂN CƯ ${thienBan.thanCu.toUpperCase()} (${thienBan.thanBranch})`);
   lines.push(`- Năm xem hạn: ${meta.viewingYear}`);
   lines.push('');
@@ -177,137 +174,7 @@ export function buildChartContext(
 
 /* ---------------------- PHẦN 2: VĂN BẢN CỔ HỌC ---------------------- */
 
-export function buildClassicalContext(texts: RawClassicalTexts | null): string {
-  if (!texts || (!texts.overview.length && !Object.keys(texts.palaces).length)) {
-    return `## B. VĂN BẢN CỔ HỌC
-(KHÔNG CÓ DỮ LIỆU — hãy luận hoàn toàn từ lá số ở phần A, đặt confidence = "thap", và ghi chú trong editorialNotes.)`;
-  }
-
-  const lines: string[] = [];
-  lines.push(`## B. VĂN BẢN CỔ HỌC THÔ (nguồn: ${texts.sourceUrl})`);
-  lines.push(`Chế độ xem: ${texts.viewMode}. Đây là văn bản ghép từ nhiều trường phái — có thể mâu thuẫn, phải phân xử theo trọng số.`);
-  lines.push('');
-
-  if (texts.overview.length) {
-    lines.push('### B0. Tổng quan');
-    for (const p of texts.overview) {
-      lines.push(`[${p.heading}]${p.source ? ` (${p.source})` : ''}`);
-      lines.push(p.text);
-      lines.push('');
-    }
-  }
-
-  if (texts.bodyPalace.length) {
-    lines.push('### B0b. Cung Thân');
-    for (const p of texts.bodyPalace) {
-      lines.push(`[${p.heading}]`);
-      lines.push(p.text);
-      lines.push('');
-    }
-  }
-
-  const order: PalaceKey[] = [
-    'menh',
-    'quan_loc',
-    'tai_bach',
-    'thien_di',
-    'phuc_duc',
-    'phu_the',
-    'tu_nu',
-    'dien_trach',
-    'phu_mau',
-    'huynh_de',
-    'no_boc',
-    'tat_ach',
-  ];
-
-  for (const key of order) {
-    const passages = texts.palaces[key];
-    if (!passages?.length) continue;
-    lines.push(`### B. ${PALACE_DISPLAY[key]}`);
-    for (const p of passages) {
-      lines.push(`[${p.heading}]`);
-      lines.push(p.text);
-      lines.push('');
-    }
-  }
-
-  const decadalKeys = Object.keys(texts.decadal).slice(0, 4);
-  if (decadalKeys.length) {
-    lines.push('### B. Đại vận (trích)');
-    for (const k of decadalKeys) {
-      lines.push(`[Đại vận ${k} tuổi]`);
-      for (const p of texts.decadal[k]) lines.push(p.text);
-      lines.push('');
-    }
-  }
-
-  return lines.join('\n');
-}
-
-/* --------------------------- PROMPT HOÀN CHỈNH --------------------------- */
-
-export interface BuildPromptOptions {
-  chart: NormalizedChartJSON;
-  classical: RawClassicalTexts | null;
-  /** Tên đương số (nếu có) để cá nhân hoá. */
-  name?: string;
-}
-
-export function buildUserPrompt({ chart, classical, name }: BuildPromptOptions): string {
-  const parts: string[] = [];
-
-  parts.push(
-    `Đương số${name ? `: ${name}` : ''} — ${chart.meta.gender === 'nam' ? 'Nam' : 'Nữ'}, sinh ${chart.meta.solarDate} (${chart.meta.lunarDateText}), giờ ${chart.meta.timeName}. Xem hạn năm ${chart.meta.viewingYear}.`,
-  );
-  parts.push('');
-  parts.push(buildChartContext(chart));
-  parts.push('');
-  parts.push(buildClassicalContext(classical));
-  parts.push('');
-  parts.push(`## C. NHIỆM VỤ
-CHỈ TRẢ VỀ MỘT OBJECT JSON. Không viết lời dẫn, không giải thích, không markdown,
-không bọc trong \`\`\`json. Ký tự đầu tiên của câu trả lời phải là "{" và ký tự cuối là "}".
-Viết báo cáo luận giải đầy đủ theo JSON schema đã cho, gồm:
-- overview: PHẦN I — Bức tranh tổng quan & cốt cách (tương quan Thiên–Địa–Nhân, cách cục chủ đạo, Thân cư, chân dung tính cách).
-- careerGroup: PHẦN II — Mệnh, Quan Lộc, Tài Bạch, Thiên Di.
-- familyGroup: PHẦN III — Phúc Đức, Phu Thê, Tử Nữ, Điền Trạch.
-- socialGroup: PHẦN IV — Phụ Mẫu, Huynh Đệ, Nô Bộc, Tật Ách (riêng Tật Ách: cơ quan theo ngũ hành sao + khuyến nghị tầm soát, KHÔNG chẩn đoán bệnh).
-- actionPlan: PHẦN V — 3-6 đại vận trọng điểm + đúng 3 kim chỉ nam.
-
-Nhắc lại ràng buộc cứng:
-- Điểm mỗi cung lấy từ "ĐIỂM ENGINE" ở bảng trên, chỉ lệch tối đa ±8, phải ghi scoreDelta và scoreReason.
-- Mỗi luận điểm phải có evidence là tên sao/trạng thái cụ thể.
-- Văn bản cổ học có mâu thuẫn thì phân xử theo trọng số và ghi vào editorialNotes.
-- Không markdown, không bullet, không in đậm trong các field text.`);
-
-  return parts.join('\n');
-}
-
-/**
- * Chuỗi định danh dữ liệu đầu vào — dùng làm khoá cho báo cáo NHẬP TỪ CHAT.
- *
- * Vì sao cần hàm riêng: báo cáo nhập tay không do model sinh, nên khoá của nó
- * không được phụ thuộc model. Nếu dùng chung khoá với đường API thì đổi
- * LLM_MODEL là mất bản đã viết — trong khi bản đó chẳng liên quan gì tới model.
- *
- * Đặt ở đây (không đặt trong chat-bundle) để cả `chat-bundle` và
- * `astrology-agent.service` dùng được mà không tạo import vòng.
- */
-export function chatInputSignature(
-  chart: NormalizedChartJSON,
-  classical: RawClassicalTexts | null,
-  name?: string,
-): string[] {
-  const allKeys = Object.values(PALACE_GROUPS).flat() as PalaceKey[];
-  return [
-    buildChartContext(chart),
-    buildClassicalSubset(classical, allKeys, true),
-    name ?? '',
-  ];
-}
-
-/* ---------------------- CHUNKED PROMPTS ---------------------- */
+/* ---------------------- VĂN BẢN CỔ HỌC THEO NHÓM CUNG ---------------------- */
 
 /** Chỉ lấy văn bản cổ học của những cung được yêu cầu. */
 /**
@@ -416,14 +283,14 @@ function renderOverviewExtras(texts: RawClassicalTexts): string | null {
   }
 
   /*
-   * Cảnh báo BẮT BUỘC: hệ này dùng toạ độ riêng (Ẩn bàn), nên chi của nó không
+   * Cảnh báo BẮT BUỘC: hệ này dùng tọa độ riêng (Ẩn bàn), nên chi của nó không
    * trùng chi Thiên bàn. Không nói rõ thì LLM coi đó là mâu thuẫn dữ liệu và bỏ
    * toàn bộ khối — đã xảy ra thật ở lần chạy trước:
    *   "Cổ học dùng hệ Cửu Thiên Phi Tinh với tên cung khác ... Phân xử: bỏ qua."
    */
   if (out.length > 1) {
     out.push(
-      '  Ghi chú: đây là hệ toạ độ riêng (Ẩn bàn) của Khâm Thiên Vô Cực Môn — chi của nó KHÔNG so sánh được với Thiên bàn ở bảng trên. Chỉ dùng TÊN CUNG; đừng coi việc lệch chi là mâu thuẫn cần phân xử.',
+      '  Ghi chú: đây là hệ tọa độ riêng (Ẩn bàn) của Khâm Thiên Vô Cực Môn — chi của nó KHÔNG so sánh được với Thiên bàn ở bảng trên. Chỉ dùng TÊN CUNG; đừng coi việc lệch chi là mâu thuẫn cần phân xử.',
     );
   }
 
@@ -493,96 +360,21 @@ export function buildClassicalSubset(
   return lines.join('\n');
 }
 
-const JSON_ONLY_RULE = `CHỈ TRẢ VỀ MỘT OBJECT JSON. Không lời dẫn, không giải thích, không markdown,
-không bọc trong \`\`\`json. Ký tự đầu tiên phải là "{" và ký tự cuối là "}".`;
-
-/** Prompt lần gọi 1: tổng quan + lộ trình. */
-export function buildOverviewPrompt({ chart, classical, name }: BuildPromptOptions): string {
-  return [
-    `Đương số${name ? `: ${name}` : ''} — ${chart.meta.gender === 'nam' ? 'Nam' : 'Nữ'}, sinh ${chart.meta.solarDate} (${chart.meta.lunarDateText}), ${chart.meta.timeName}. Xem hạn năm ${chart.meta.viewingYear}.`,
-    '',
-    buildChartContext(chart),
-    '',
-    buildClassicalSubset(classical, [], true),
-    '',
-    `## C. NHIỆM VỤ
-${JSON_ONLY_RULE}
-
-Viết PHẦN I (overview) và PHẦN V (actionPlan) của báo cáo:
-- overview.opening: 2-3 câu tóm tắt khách quan (trục chính + điểm nghẽn), KHÔNG chào hỏi,
-  KHÔNG ngôi thứ nhất, KHÔNG ngôi thứ ba. Xưng "bạn".
-- overview.thienDiaNhan: tương quan Năm sinh (Âm/Dương) – Bản mệnh nạp âm – Cục.
-- overview.cachCuc: cách cục chủ đạo, giải thích bằng ngôn ngữ hiện đại.
-- overview.thanCu: Thân cư đâu, nửa sau cuộc đời nghiêng về gì.
-- overview.personality: 3-4 nét tính cách + năng lực cốt lõi + điểm mù.
-- actionPlan.decadalAnalysis: 3-6 đại vận trọng điểm (không cần đủ 12).
-- actionPlan.goldenRules: đúng 3 nguyên tắc. Nếu có DỤNG THẦN trong khối Đẩu Minh,
-  thì ít nhất 1 nguyên tắc phải dùng nó (màu sắc, hướng, môi trường, kiểu nghề) —
-  đây là phần cải vận duy nhất có căn cứ dữ liệu, đừng bỏ trống.
-- overview.thanCu hoặc overview.cachCuc: nếu khối Cửu Thiên Phi Tinh có dữ liệu,
-  nêu cung ở vị trí Nhân (giờ sinh) là cung quan hệ trọng yếu nhất của đời, và
-  cặp Thiên + Nhân lấy Địa làm trung gian. Nói bằng lời thường, không dùng thuật ngữ.
-- editorialNotes: các mâu thuẫn trong văn bản cổ học đã phân xử thế nào.
-
-meta lấy đúng từ dữ liệu ở trên.`,
-  ].join('\n');
-}
-
-/** Prompt lần gọi 2–4: một nhóm 4 cung. */
-export function buildGroupPrompt({
-  chart,
-  classical,
-  keys,
-  groupLabel,
-}: BuildPromptOptions & { keys: PalaceKey[]; groupLabel: string }): string {
-  const list = keys.map((k) => `- ${k} (${PALACE_DISPLAY[k]})`).join('\n');
-  return [
-    `Đương số — ${chart.meta.gender === 'nam' ? 'Nam' : 'Nữ'}, sinh ${chart.meta.solarDate} (${chart.meta.lunarDateText}), ${chart.meta.timeName}. Xem hạn năm ${chart.meta.viewingYear}.`,
-    '',
-    buildChartContext(chart, { detailPalaces: keys, includeDecadal: false, includeAnnual: false }),
-    '',
-    buildClassicalSubset(classical, keys),
-    '',
-    `## C. NHIỆM VỤ
-${JSON_ONLY_RULE}
-
-Viết ${groupLabel}, đúng ${keys.length} cung theo thứ tự:
-${list}
-
-Mỗi cung cần:
-- narrative: TỐI ĐA 2 đoạn văn xuôi, tổng 300-650 ký tự, ngăn bằng \\n\\n.
-  Đoạn 1: bản chất + hệ quả cụ thể. Đoạn 2: cái giá phải trả và điều nên làm khác đi.
-  KHÔNG gạch đầu dòng. KHÔNG nhắc lại danh sách sao (đã có ở headline).
-  KHÔNG câu đệm, KHÔNG giải thích khái niệm tử vi, KHÔNG quá 3 ý cho một cung.
-  Chủ ngữ là SAO hoặc ĐỜI SỐNG, không phải "tôi/có thể thấy". Xưng "bạn" chỉ khi
-  khuyên trực tiếp. KHÔNG "anh/chị/đương số/người này", KHÔNG "tôi/chúng ta".
-  Câu đầu mỗi đoạn là KẾT LUẬN. Nêu cặp "gặp X thì Y / không gặp thì Z".
-  KHÔNG mở rộng sang cung khác ngoài xung chiếu/tam hợp trực tiếp.
-- headline: MỘT câu, tối đa 25 từ, nêu sao + hệ quả. Đây là thứ người đọc đọc trước.
-- strengths (1-2), risks (1-2), strategy (2-3, mỗi ý dưới 20 từ), evidence là tên sao cụ thể.
-- score: lấy điểm ENGINE trong bảng, lệch tối đa ±8, ghi scoreDelta và scoreReason.
-
-Trả về object { "palaces": [ ... ] } đúng ${keys.length} phần tử.`,
-  ].join('\n');
-}
-
 /**
  * Few-shot: MỘT cung viết đúng + một bản SAI đối chiếu.
  *
- * VÌ SAO CẦN: cả hai gói dán tay (kỹ năng và chat thường) đều không có MỘT ví
- * dụ đầu ra hoàn chỉnh nào — chỉ có mô tả trừu tượng ("mỗi câu một thông tin
- * mới"). Model bắt chước mẫu tốt hơn hẳn so với đọc luật, và đây là lever chất
- * lượng mạnh nhất còn bỏ trống.
+ * VÌ SAO CẦN: gói kỹ năng không có MỘT ví dụ đầu ra hoàn chỉnh nào — chỉ có mô
+ * tả trừu tượng ("mỗi câu một thông tin mới"). Mô hình bắt chước mẫu tốt hơn hẳn
+ * so với đọc luật, và đây là lever chất lượng mạnh nhất còn bỏ trống.
  *
- * VÌ SAO NẰM Ở ĐÂY chứ không phải trong skill-package: hai gói đều cần nó, mà
- * skill-package lại import `SHAPE_PALACE` từ chat-bundle. Nhét vào một trong hai
- * là tạo vòng import chat-bundle ↔ skill-package. prompt-builder nằm giữa nên cả
- * hai import một chiều.
+ * VÌ SAO NẰM Ở ĐÂY chứ không phải trong skill-package: skill-package import
+ * `SHAPE_PALACE` từ chat-bundle; nhét thêm hàm này vào đó là tạo vòng import
+ * chat-bundle ↔ skill-package. prompt-builder nằm giữa nên chỉ import một chiều.
  *
  * MẪU DỮ LIỆU ĐÃ KIỂM CHỨNG: mọi sao trong ví dụ đều có thật trong lá số
  * 1990-10-21 (Thiên Đồng Bình + Hóa Kỵ, Kình Dương Hãm, Linh Tinh Đắc tại Nô Bộc
  * Dậu; không có Thái Âm/Thiên Lương trong cung lẫn xung chiếu). Không dùng ví dụ
- * bịa — dạy model viết sai chính là dạy nó bịa trong báo cáo thật.
+ * bịa — dạy mô hình viết sai chính là dạy nó bịa trong báo cáo thật.
  *
  * Bản SAI chứa đúng những lỗi đã gặp thật: câu đệm, không căn cứ sao, không hệ
  * quả đời sống, đọc xong không biết làm gì.

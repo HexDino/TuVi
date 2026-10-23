@@ -1,24 +1,15 @@
 /**
  * GET /api/skill — xuất kỹ năng cho Gemini Skills.
  * ---------------------------------------------------------------------------
- * SỬA LẦN 2 (22/10/2026): bản trước trả file `.zip` và KHÔNG upload được.
- * Hộp thoại "Tải một kỹ năng lên" của Gemini ghi rõ:
- *
- *   "Kéo hoặc chọn hình ảnh, tệp hoặc thư mục để tải tệp PDF, CSV, PY, TXT và MD lên"
- *
- * Tức là: nhận **thư mục** (kéo cả folder) và các tệp .md/.txt/.py/.csv/.pdf —
- * KHÔNG nhận .zip. Vậy đường đúng là để người dùng tải `SKILL.md` rồi bỏ vào một
- * thư mục và kéo thư mục đó vào.
+ * Gemini nhận `SKILL.md`, một thư mục, hoặc tệp .zip có `SKILL.md` ở thư mục
+ * gốc (Create → Upload trong Skills; tổng dung lượng ≤ 100 MB). Gói .zip là
+ * đường nhanh nhất cho người dùng.
  *
  * Các dạng trả về:
- *   (mặc định)         text/markdown + attachment "SKILL.md"  → tải về, bỏ vào thư mục
+ *   (mặc định)         text/markdown + attachment "SKILL.md"
  *   ?inline=1          text/markdown, không attachment          → để fetch/đọc trước
  *   ?file=vi-du-van-phong | vi-du-dau-ra | du-lieu-mau            → 3 tệp tham khảo
- *   ?format=zip        application/zip                          → cho nền tảng KHÁC nhận zip
- *                                                                 (Claude, công cụ agent…)
- *
- * Vì sao vẫn giữ zip: định dạng skill dạng zip dùng được ở nơi khác. Nhưng với
- * Gemini thì đừng đưa zip — sai định dạng, mất thời gian của người dùng.
+ *   ?format=zip        application/zip                          → gói đầy đủ cho Create → Upload
  * ---------------------------------------------------------------------------
  */
 

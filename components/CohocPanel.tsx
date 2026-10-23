@@ -7,7 +7,7 @@ import type { CohocMetrics, CohocOverviewExtras, NormalizedChartJSON, PalaceKey 
  *
  * Đây là thứ engine nội bộ KHÔNG có: Đẩu Minh theo ngũ hành can-chi của cung
  * (khác hoàn toàn với điểm theo sao), cung khí, tỉ lệ sao tốt, và ngũ hành
- * hỉ-kị dùng để cải vận. Trước đây parser xoá sạch bảng nên mất trắng.
+ * hỉ-kị dùng để cải vận. Trước đây parser xóa sạch bảng nên mất trắng.
  *
  * Không trộn với điểm engine: hai hệ quy chiếu khác nhau, để cạnh nhau cho
  * người đọc thấy chỗ đồng thuận và chỗ lệch.
@@ -153,7 +153,7 @@ export function CohocPanel({
       <summary>
         <span className="cohoc-title">Chấm theo Tử Vi Cổ Học (Đẩu Minh)</span>
         <span className="cohoc-hint">
-          hệ quy chiếu khác engine — theo ngũ hành can-chi của cung, không theo sao
+          hệ quy chiếu khác với engine — theo ngũ hành can-chi của cung, không theo sao
         </span>
       </summary>
 
@@ -211,39 +211,15 @@ export function CohocPanel({
       </div>
 
       <div className="cohoc-foot">
-        Tổng điểm lá số theo cohoc: thiên bàn {metrics.totals.thienBan?.toFixed(2) ?? '—'} · địa bàn{' '}
-        {metrics.totals.diaBan?.toFixed(2) ?? '—'} · nhân bàn {metrics.totals.nhanBan?.toFixed(2) ?? '—'}
-        . Thang −3 (rất xấu) đến +3 (rất tốt), tính theo ngũ hành của cung — nên có thể lệch với điểm
-        engine vốn tính theo sao.
+        Tổng điểm: thiên bàn {metrics.totals.thienBan?.toFixed(2) ?? '—'} · địa bàn{' '}
+        {metrics.totals.diaBan?.toFixed(2) ?? '—'} · nhân bàn {metrics.totals.nhanBan?.toFixed(2) ?? '—'} ·
+        thang −3 đến +3.
       </div>
 
       {extras && (
         <>
           <ThatTinh extras={extras} chart={chart} />
           <MenhAn extras={extras} />
-
-          {extras.tinhDau.length > 0 && (
-            <div className="ctt ctt-compact">
-              <div className="ctt-head">
-                <b>Vượng suy theo tinh đẩu</b>
-                <span>ngũ hành của chính tinh đang thủ Mệnh</span>
-              </div>
-              <div className="ctt-tinh">
-                {extras.tinhDau.map((t) => (
-                  <span className="ctt-tinh-item" key={t.star}>
-                    {t.star} <ElementChip raw={t.element} />
-                    <em>độ số {t.doSo}</em>
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {extras.vuongSuyCung && (
-            <div className="cohoc-foot" style={{ borderTop: '1px dashed var(--line)', paddingTop: 10 }}>
-              {extras.vuongSuyCung}
-            </div>
-          )}
         </>
       )}
     </details>

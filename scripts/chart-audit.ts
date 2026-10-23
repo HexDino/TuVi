@@ -12,7 +12,6 @@
  *    Trang cohoc chỉ ghi can-chi năm, không ghi năm dương lịch → thử 2 ứng viên
  *    năm và chọn lá số khớp bảng sao nhất, ghi rõ nếu cả 2 đều lệch.
  * C. Tương quan điểm engine ↔ Đẩu Minh của cohoc + tỉ lệ đồng thuận VCD.
- * D. Bảng điểm 11 tiêu chí của báo cáo LLM thật (demo/report-real.json).
  *
  * Chạy: npm run chart:audit
  */
@@ -20,7 +19,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { chartGenerator } from '../lib/tuvi/chart-generator.service';
 import { parseCohocChartTable, crossCheckChart } from '../lib/tuvi/cohoc-parser';
-import { checkReportQuality } from '../lib/tuvi/report-quality';
 import type { NormalizedChartJSON, CohocMetrics } from '../types/tuvi';
 
 const BRANCHES = ['Tý', 'Sửu', 'Dần', 'Mão', 'Thìn', 'Tỵ', 'Ngọ', 'Mùi', 'Thân', 'Dậu', 'Tuất', 'Hợi'];
@@ -275,24 +273,6 @@ names.forEach((n, i) => {
   console.log(`  Pearson r (điểm engine ↔ ${n}): ${Number.isNaN(r) ? 'n/a' : r.toFixed(2)}  [n=${pool.engine[i].length}]`);
 });
 console.log(`  VCD theo metrics "(VCD)": ${pool.vcdHit.filter(Boolean).length}/${pool.vcdHit.length} (${pct(pool.vcdHit.filter(Boolean).length, pool.vcdHit.length)}) — CHỮA SỐ: bảng metrics này bất đồng với CHÍNH bảng sao HTML của cohoc ở 9/36 cung nên không dùng làm chuẩn; engine khớp bảng sao 36/36 (chi tiết ở README, mục Cross-check).`);
-
-/* ==================== D. ĐIỂM 11 TIÊU CHÍ BÁO CÁO ==================== */
-console.log('\n═══ D. BẢNG ĐIỂM 11 TIÊU CHÍ (báo cáo LLM thật) ═══');
-const realPath = path.join(process.cwd(), 'demo', 'report-real.json');
-if (fs.existsSync(realPath)) {
-  const doc = JSON.parse(fs.readFileSync(realPath, 'utf8')) as { report: { meta?: { solarDate?: string } } };
-  const sd = doc.report.meta?.solarDate;
-  if (sd === '1990-10-21') {
-    const c = chartGenerator.generate({ gender: 'nam', calendarType: 'solar', date: sd, hour: 12, viewingYear: 2026 });
-    const q = checkReportQuality(doc.report as never, c);
-    console.log(`  demo/report-real.json: ${q.passed}/${q.total}`);
-    for (const i of q.issues.filter((x) => !x.pass)) console.log(`    ✗ [${i.id}] ${i.detail}`);
-  } else {
-    console.log(`  bỏ qua: lá số demo (${sd}) không phải ca chuẩn 1990-10-21 (cần lá số tương ứng để chấm)`);
-  }
-} else {
-  console.log('  (chưa có demo/report-real.json — chạy `npm run report:real` với LLM_API_KEY để sinh bản rồi chấm)');
-}
 
 console.log('\n═══ TỔNG ═══');
 console.log(`  lỗi bất biến: ${fail.length} | đối chiếu cohoc: ${fullyMatched}/${rows.size} khớp 100%`);

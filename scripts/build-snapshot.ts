@@ -2,11 +2,11 @@
  * scripts/build-snapshot.ts
  * ---------------------------------------------------------------------------
  * Xuất trang HTML tĩnh để xem giao diện mà không cần chạy Next.
- * Render bằng CHÍNH component của app (react-dom/server) nên nhìn là nhìn UI thật.
+ * Render bằng CHÍNH component của ứng dụng (react-dom/server) nên nhìn là nhìn UI thật.
  *
  * Nguồn dữ liệu:
  *  - Lá số: THẬT (Module 1 + 2)
- *  - Báo cáo: ưu tiên demo/report-real.json (do LLM thật sinh ra);
+ *  - Báo cáo: ưu tiên demo/report-real.json (bản mẫu đã lưu);
  *    nếu chưa có thì dùng fixture mock.
  *
  * Chạy: npm run snapshot
@@ -43,7 +43,7 @@ async function main() {
     const parsed = TuViFullReportSchema.safeParse(raw.report ?? raw);
     if (parsed.success) {
       report = parsed.data;
-      source = 'LLM thật (Claude)';
+      source = 'báo cáo mẫu (demo/report-real.json)';
     } else {
       console.warn('  ! report-real.json không khớp schema, dùng fixture');
     }
@@ -64,8 +64,8 @@ async function main() {
     createElement(ReportView, {
       report: report as never,
       chart,
-      streaming: false,
-      error: null,
+      quality: null,
+      onOpenSkill: () => {},
     }),
   );
 
@@ -89,15 +89,15 @@ async function main() {
   <header class="masthead">
     <div>
       <h1>Tử Vi Đẩu Số</h1>
-      <div class="sub">Bản xem trước giao diện — lá số thật, luận giải thật</div>
+      <div class="sub">Bản xem trước giao diện — lá số thật, báo cáo mẫu</div>
     </div>
-    <span class="badge">iztro · cohoc.net · AI synthesis</span>
+    <span class="badge">iztro · cohoc.net · Gemini skill</span>
   </header>
 
   <div class="banner">
     <b>Nguồn nội dung:</b> ${source}. Lá số dựng bằng engine nội bộ (iztro), đối chiếu cohoc.net
     (${classical?.stats.passageCount ?? 0} đoạn văn bản cổ học đã bóc, ${(classical?.stats.cleanedChars ?? 0).toLocaleString('vi-VN')} ký tự).
-    Điểm từng cung do engine chấm; phần chữ do LLM viết theo system prompt ở <code>lib/tuvi/prompts.ts</code>.
+    Điểm từng cung do engine chấm; phần chữ do Gemini viết bằng gói kỹ năng ở <code>demo/SKILL.md</code>.
     ${warnings.length ? `Có ${warnings.length} cảnh báo từ pipeline.` : ''}
   </div>
 

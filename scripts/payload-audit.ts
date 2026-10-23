@@ -2,7 +2,7 @@
  * scripts/payload-audit.ts — LÁ SỐ ĐƯA VÀO GEMINI CÓ ĐÚNG KHÔNG?
  *
  * "Lá số tốt" vô nghĩa nếu tầng soạn prompt làm sai/missing dữ liệu trước khi
- * đưa cho model. Script này đọc lại NGƯỢC payload (chuỗi Markdown sắp dán vào
+ * đưa cho mô hình. Script này đọc lại NGƯỢC payload (chuỗi Markdown sắp dán vào
  * Gemini) và so từng trường với NormalizedChartJSON của engine:
  *   1) bảng 12 cung: chi · chính tinh · cát/sát tinh · Tuần/Triệt · điểm · đại hạn
  *   2) Tứ Hóa năm sinh: đủ 4 sao và sao phải tọa thật trong lá số
@@ -14,8 +14,6 @@
  */
 import { chartGenerator } from '../lib/tuvi/chart-generator.service';
 import { buildSkillPayload } from '../lib/tuvi/skill-package';
-import { buildChatBundle } from '../lib/tuvi/chat-bundle';
-import type { NormalizedChartJSON } from '../types/tuvi';
 
 let bad = 0;
 const fail = (m: string) => { bad++; console.log(`    ✗ ${m}`); };
@@ -111,12 +109,6 @@ for (const tc of cases) {
 
     console.log(`  ✓ ${mode}: ${payload.chars.toLocaleString('vi-VN')} ký tự ≈ ${payload.tokenEstimate.toLocaleString('vi-VN')} token — 12 cung, ${wantMutagen.length} tứ hoá, 12 đại vận, lưu niên đều khớp engine`);
   }
-
-  /* gói chat thường (dán tay, không qua skill) cũng phải mang đủ dữ liệu */
-  const bundle = buildChatBundle({ chart, classical: null });
-  const missing = chart.palaces.filter((p) => !bundle.prompt.includes(`${p.name} (${p.branch})`) && !bundle.prompt.includes(p.branch));
-  if (missing.length) fail(`gói chat thường thiếu cung: ${missing.map((p) => p.name).join(', ')}`);
-  console.log(`  ✓ chat bundle: ${bundle.chars.toLocaleString('vi-VN')} ký tự, đủ 12 cung`);
 }
 
 console.log(`\n═══ TỔNG: ${bad === 0 ? '0 lỗi dữ liệu — payload trung thành với engine' : `${bad} lỗi`} ═══`);

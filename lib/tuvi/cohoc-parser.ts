@@ -331,7 +331,7 @@ function rankPassages(passages: RawPassage[], hints: string[] | undefined): RawP
 
 /* --------------------------- SỐ LIỆU ĐỊNH LƯỢNG --------------------------- */
 /*
- * cohoc tự tính 3 bảng số cho mỗi lá số. Trước đây parser xoá sạch <table> khi
+ * cohoc tự tính 3 bảng số cho mỗi lá số. Trước đây parser xóa sạch <table> khi
  * làm sạch HTML nên mất trắng. Đây là dữ liệu engine nội bộ KHÔNG có.
  */
 

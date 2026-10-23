@@ -1,63 +1,39 @@
 /**
- * lib/tuvi/chat-bundle.ts — CẦU NỐI CHAT WEB (chi phí 0 đồng)
+ * lib/tuvi/chat-bundle.ts — PARSE CÂU TRẢ LỜI TỪ GEMINI
  * ---------------------------------------------------------------------------
- * VẤN ĐỀ: chat web của Claude/Gemini không có API, và điều khoản cấm tự động
- * hoá. Nhưng **con người dùng chat web là hoàn toàn hợp lệ** — đó chính là cách
- * sản phẩm được thiết kế để dùng.
+ * Ứng dụng không gọi mô hình. Người dùng cài gói kỹ năng trong Gemini, dán dữ liệu lá
+ * số, rồi dán câu trả lời về đây. File này lo phần nhận lại:
+ *   - tách 4 khối theo dấu phân cách;
+ *   - validate từng khối bằng Zod;
+ *   - kiểm đúng bộ cung của từng Tam Hợp;
+ *   - ghép thành báo cáo hoàn chỉnh.
  *
- * GIẢI PHÁP: đổi vai trò. App không gọi model; app soạn sẵn một "gói" (prompt
- * đầy đủ + mô tả định dạng đầu ra), người dùng dán vào chat, rồi dán kết quả
- * về. App validate, ghép, và **lưu cache** — từ đó lá số đó phục vụ vô hạn với
- * 0 token API.
- *
- * VÌ SAO ĐÁNG LÀM: một lá số chỉ cần viết một lần. Đổi lại 3-5 phút copy-paste,
- * người dùng không trả đồng nào cho lượt xem thứ 2, thứ 100, hay lượt xem của
- * người khác mở link chia sẻ.
- *
- * VÌ SAO CHIA 4 KHỐI CHỨ KHÔNG 1: đã đo — JSON 12 cung (~15k token) trong một
- * lần trả lời thì model hay làm hỏng cấu trúc. Bốn khối nhỏ, mỗi khối một dấu
- * phân cách rõ ràng, thì parse được và lỗi cô lập (sai khối nào báo khối đó).
+ * VÌ SAO CHIA 4 KHỐI CHỨ KHÔNG 1: JSON 12 cung (~15k token) trong một lần trả
+ * lời thì mô hình hay làm hỏng cấu trúc. Bốn khối nhỏ, mỗi khối một dấu phân cách
+ * rõ ràng, thì parse được và lỗi cô lập (sai khối nào báo khối đó).
  * ---------------------------------------------------------------------------
  */
 
-import type { NormalizedChartJSON, PalaceKey, RawClassicalTexts } from '@/types/tuvi';
+import type { PalaceKey } from '@/types/tuvi';
 import {
   OverviewPartSchema,
   PalaceGroupPartSchema,
   PALACE_GROUPS,
   type TuViFullReport,
 } from '@/schemas/report.schema';
-import { TUVIAST_SYSTEM_PROMPT, PROMPT_VERSION } from './prompts';
-import {
-  buildChartContext,
-  buildClassicalSubset,
-  buildFewShot,
-  chatInputSignature,
-} from './prompt-builder';
-import { assembleReport } from './astrology-agent.service';
-import { makeReportKey } from './report-cache';
-
-export interface ChatBundle {
-  /** Khoá cache mà báo cáo nhập về sẽ được lưu dưới đó. */
-  cacheKey: string;
-  /** Toàn bộ nội dung cần dán vào chat. */
-  prompt: string;
-  chars: number;
-  /** Ước lượng token, hệ số 1,2 ký tự/token cho tiếng Việt (đã đo). */
-  tokenEstimate: number;
-}
+import { assembleReport } from './report-assembly';
 
 const GROUP_META: Array<{ n: number; label: string; keys: readonly PalaceKey[] }> = [
   { n: 2, label: 'TAM HỢP SỰ NGHIỆP (Mệnh · Quan Lộc · Tài Bạch · Thiên Di)', keys: PALACE_GROUPS.career },
   { n: 3, label: 'TAM HỢP GIA ĐẠO (Phúc Đức · Phu Thê · Tử Nữ · Điền Trạch)', keys: PALACE_GROUPS.family },
-  { n: 4, label: 'QUAN HỆ XÃ HỘI & SỨC KHOẺ (Phụ Mẫu · Huynh Đệ · Nô Bộc · Tật Ách)', keys: PALACE_GROUPS.social },
+  { n: 4, label: 'QUAN HỆ XÃ HỘI & SỨC KHỎE (Phụ Mẫu · Huynh Đệ · Nô Bộc · Tật Ách)', keys: PALACE_GROUPS.social },
 ];
 
 /**
  * Mô tả cấu trúc JSON một cung — viết tay cho gọn nhưng phải khớp
  * `schemas/report.schema.ts`.
  *
- * Export để bản hướng dẫn Gem dùng CHUNG nguồn: nếu Gem dạy model một cấu trúc
+ * Export để bản hướng dẫn kỹ năng dùng CHUNG nguồn: nếu kỹ năng dạy mô hình một cấu trúc
  * khác với schema thì mọi báo cáo nhập về sẽ hỏng validate. Dùng chung chuỗi là
  * cách duy nhất để hai bên không lệch.
  */
@@ -67,7 +43,7 @@ export const SHAPE_PALACE = `{
   "mainStars": "chính tinh + trạng thái, ví dụ \\"Tham Lang (Miếu)\\" hoặc \\"Vô chính diệu\\"",
   "verdict": "thuan_loi | trung_binh | thu_thach",
   "headline": "MỘT câu, tối đa 25 từ, nêu sao + hệ quả",
-  "narrative": "300-650 ký tự, TỐI ĐA 2 đoạn, ngăn bằng \\\\n\\\\n. Đoạn 1 bản chất + hệ quả cụ thể. Đoạn 2 cái giá và điều nên làm khác đi. KHÔNG gạch đầu dòng.",
+  "narrative": "300-650 ký tự, TỐI ĐA 2 đoạn, ngắt bằng \\\\n\\\\n. Đoạn 1 bản chất + hệ quả cụ thể. Đoạn 2 cái giá và điều nên làm khác đi. KHÔNG gạch đầu dòng.",
   "strengths": [{ "title": "...", "detail": "25+ ký tự, kịch bản nhân quả", "evidence": ["Tham Lang (Miếu)"] }],
   "risks":     [{ "title": "...", "detail": "25+ ký tự", "evidence": ["Hóa Kỵ tại Nô Bộc"] }],
   "strategy": ["10+ ký tự", "10+ ký tự"],
@@ -75,154 +51,6 @@ export const SHAPE_PALACE = `{
   "scoreDelta": 0,
   "scoreReason": "vì sao giữ nguyên hoặc lệch"
 }`;
-
-function buildPrompt(
-  chart: NormalizedChartJSON,
-  classical: RawClassicalTexts | null,
-  name?: string,
-): string {
-  const allKeys = Object.values(PALACE_GROUPS).flat() as PalaceKey[];
-
-  const lines: string[] = [];
-
-  lines.push('# NHIỆM VỤ');
-  lines.push(
-    `Viết bản luận giải Tử Vi Đẩu Số cho ${name ? `đương số ${name}` : 'đương số'} (${chart.meta.gender === 'nam' ? 'Nam' : 'Nữ'}, sinh ${chart.meta.solarDate} âm lịch ${chart.meta.lunarDateText}, ${chart.meta.timeName}, xem hạn năm ${chart.meta.viewingYear}).`,
-  );
-  lines.push('');
-  lines.push(
-    'Trả lời bằng **đúng 4 khối JSON**, mỗi khối mở đầu bằng dòng phân cách như dưới đây. Không viết lời dẫn, không giải thích ngoài 4 khối, không bọc trong ```json.',
-  );
-  lines.push('');
-  lines.push('```');
-  lines.push('=== PHẦN 1: TỔNG QUAN ===');
-  lines.push('{ ... }');
-  lines.push('=== PHẦN 2: TAM HỢP SỰ NGHIỆP ===');
-  lines.push('{ "palaces": [ ...4 cung... ] }');
-  lines.push('=== PHẦN 3: TAM HỢP GIA ĐẠO ===');
-  lines.push('{ "palaces": [ ...4 cung... ] }');
-  lines.push('=== PHẦN 4: QUAN HỆ XÃ HỘI & SỨC KHOẺ ===');
-  lines.push('{ "palaces": [ ...4 cung... ] }');
-  lines.push('```');
-  lines.push('');
-
-  lines.push('# LUẬT NGHỀ');
-  lines.push(TUVIAST_SYSTEM_PROMPT);
-  lines.push('');
-
-  lines.push('# DỮ LIỆU LÁ SỐ');
-  lines.push(buildChartContext(chart));
-  lines.push('');
-
-  lines.push('# VĂN BẢN CỔ HỌC');
-  lines.push(buildClassicalSubset(classical, allKeys, true));
-  lines.push('');
-
-  lines.push('# ĐỊNH DẠNG ĐẦU RA');
-  lines.push('');
-  lines.push('**PHẦN 1** — object:');
-  lines.push('```json');
-  lines.push(`{
-  "meta": {
-    "solarDate": "${chart.meta.solarDate}",
-    "lunarDate": "${chart.meta.lunarDateText}",
-    "chineseDate": "${chart.meta.chineseDate}",
-    "gender": "${chart.meta.gender}",
-    "viewingYear": ${chart.meta.viewingYear},
-    "confidence": "cao | trung_binh | thap"
-  },
-  "overview": {
-    "opening": "40+ ký tự, tóm tắt khách quan: trục chính + điểm nghẽn",
-    "thienDiaNhan": {
-      "verdict": "rat_thuan | thuan | trung_tinh | veo | nhieu_vat_va",
-      "analysis": "80+ ký tự: tương quan Năm sinh - Bản mệnh nạp âm - Cục"
-    },
-    "cachCuc": {
-      "name": "tên cách cục chủ đạo",
-      "explanation": "40+ ký tự, giải thích bằng ngôn ngữ hiện đại",
-      "classicalQuote": "câu phú chữ Hán (tuỳ chọn)",
-      "quoteMeaning": "bắt buộc nếu có classicalQuote"
-    },
-    "thanCu": { "palace": "Thân cư cung gì", "meaning": "40+ ký tự" },
-    "personality": {
-      "traits": [{ "title": "...", "detail": "40+ ký tự" }],
-      "coreCompetencies": ["...", "..."],
-      "blindSpots": ["..."]
-    },
-    "overallScore": 76,
-    "oneLineVerdict": "20+ ký tự, một câu chốt chân dung"
-  },
-  "actionPlan": {
-    "decadalAnalysis": [
-      { "range": "34-43", "theme": "12+ ký tự", "opportunity": "10+ ký tự", "risk": "10+ ký tự", "action": "tich_luy | but_pha | phong_thu | chuyen_huong" }
-    ],
-    "goldenRules": [{ "rule": "10+ ký tự", "rationale": "12+ ký tự" }]
-  },
-  "editorialNotes": ["mâu thuẫn trong văn bản cổ học đã phân xử thế nào"]
-}`);
-  lines.push('```');
-  lines.push('');
-  lines.push('Ràng buộc PHẦN 1: `traits` 3-4 mục · `coreCompetencies` 2-4 · `blindSpots` 1-3 · `decadalAnalysis` 3-6 · `goldenRules` **đúng 3**.');
-  lines.push('');
-
-  for (const g of GROUP_META) {
-    lines.push(`**PHẦN ${g.n}** — ${g.label}. Object \`{ "palaces": [ ... ] }\`, **đúng 4 phần tử**, theo thứ tự: ${g.keys.join(', ')}.`);
-    lines.push('Mỗi phần tử có dạng:');
-    lines.push('```json');
-    lines.push(SHAPE_PALACE);
-    lines.push('```');
-    lines.push(
-      'Ràng buộc mỗi cung: `strengths` 1-3 · `risks` 1-3 · `strategy` 2-4 · `narrative` 300-650 ký tự · `score` lấy điểm ENGINE trong bảng, lệch tối đa ±8 và phải ghi `scoreDelta` + `scoreReason`.',
-    );
-    lines.push('');
-  }
-
-  /*
-   * VÍ DỤ ĐẦU RA + BẢNG CHIỀU SÂU THEO ĐIỂM.
-   * Gói kỹ năng đã có (đặt trong payload), còn đường chat thường thì thiếu —
-   * cùng một người dùng, hai đường cho chất lượng khác nhau mà không ai báo.
-   * Đặt trước "# NHẮC LẠI": ví dụ phải nằm sau luật và sau dữ liệu điểm, để
-   * model thấy mẫu đúng ngay trước khi viết.
-   */
-  lines.push(buildFewShot());
-  lines.push('');
-
-  lines.push('# NHẮC LẠI');
-  lines.push(
-    'Chỉ 4 khối JSON, đúng 4 dấu phân cách. Không markdown ngoài 4 khối. Không giải thích. Nếu một cung không đủ dữ liệu, vẫn phải viết đủ trường với nội dung thận trọng.',
-  );
-
-  return lines.join('\n');
-}
-
-/** Khoá cache cho báo cáo nhập từ chat — độc lập với model, để đổi model không mất bản đã viết. */
-export function chatCacheKey(
-  chart: NormalizedChartJSON,
-  classical: RawClassicalTexts | null,
-  name?: string,
-): string {
-  return makeReportKey({
-    prompts: chatInputSignature(chart, classical, name),
-    modelChain: 'chat-manual',
-    temperature: 0,
-    promptVersion: PROMPT_VERSION,
-    mode: 'chat',
-  });
-}
-
-export function buildChatBundle(input: {
-  chart: NormalizedChartJSON;
-  classical: RawClassicalTexts | null;
-  name?: string;
-}): ChatBundle {
-  const prompt = buildPrompt(input.chart, input.classical, input.name);
-  return {
-    cacheKey: chatCacheKey(input.chart, input.classical, input.name),
-    prompt,
-    chars: prompt.length,
-    tokenEstimate: Math.round(prompt.length / 1.2),
-  };
-}
 
 /* ------------------------------ PARSE ------------------------------ */
 
@@ -244,7 +72,7 @@ function extractJson(raw: string): string | null {
 /**
  * Tách 4 khối theo dấu phân cách.
  *
- * Chấp nhận nhiều biến thể vì model hay đổi: `=== PHẦN 1: ... ===`,
+ * Chấp nhận nhiều biến thể vì mô hình hay đổi: `=== PHẦN 1: ... ===`,
  * `**PHẦN 1**`, `PHẦN 1 —`, có/không dấu hai chấm. Chỉ cần đúng SỐ THỨ TỰ.
  */
 function splitParts(text: string): Map<number, string> {
@@ -256,7 +84,7 @@ function splitParts(text: string): Map<number, string> {
   }
   for (let i = 0; i < marks.length; i++) {
     const body = text.slice(marks[i].end, marks[i + 1]?.start ?? text.length);
-    // Khối trùng số (model nhắc lại tiêu đề) → giữ khối dài hơn
+    // Khối trùng số (mô hình nhắc lại tiêu đề) → giữ khối dài hơn
     const prev = out.get(marks[i].n);
     if (!prev || body.length > prev.length) out.set(marks[i].n, body);
   }
@@ -273,11 +101,19 @@ export function parseChatResponse(text: string): ChatImportResult {
       try {
         const obj = JSON.parse(whole) as { careerGroup?: unknown; familyGroup?: unknown; socialGroup?: unknown };
         if (obj.careerGroup && obj.familyGroup && obj.socialGroup) {
-          const merged = assembleReport({
-            overview: obj,
-            groups: { career: { palaces: obj.careerGroup }, family: { palaces: obj.familyGroup }, social: { palaces: obj.socialGroup } },
-          });
-          return { ok: true, report: merged };
+          try {
+            const merged = assembleReport({
+              overview: obj,
+              groups: { career: { palaces: obj.careerGroup }, family: { palaces: obj.familyGroup }, social: { palaces: obj.socialGroup } },
+            });
+            return { ok: true, report: merged };
+          } catch (e) {
+            return {
+              ok: false,
+              error: 'Báo cáo dán vào không khớp bộ cung của Tam Hợp.',
+              detail: (e as Error).message.slice(0, 300),
+            };
+          }
         }
       } catch {
         /* rơi xuống lỗi bên dưới */
@@ -291,10 +127,10 @@ export function parseChatResponse(text: string): ChatImportResult {
     return {
       ok: false,
       error: looksLikeProse
-        ? 'Nội dung này là văn xuôi, không phải JSON — không lưu vào app được.'
+        ? 'Nội dung này là văn xuôi, không phải JSON — ứng dụng không nhập được.'
         : 'Không tìm thấy dấu phân cách "=== PHẦN 1: ... ===" trong nội dung dán vào.',
       detail: looksLikeProse
-        ? 'Muốn lưu bản luận vào app: mở lại hộp thoại, chọn định dạng "JSON", dán dữ liệu lá số lại và lấy câu trả lời mới.'
+        ? 'Câu trả lời đang ở chế độ văn xuôi. Hãy mở lại hộp thoại, chọn định dạng "JSON", dán dữ liệu lá số lại và lấy câu trả lời mới.'
         : 'Hãy dán nguyên câu trả lời của chat, kể cả các dòng === PHẦN n ===.',
     };
   }
@@ -358,6 +194,26 @@ export function parseChatResponse(text: string): ChatImportResult {
         ok: false,
         error: `Phần ${n} có ${parsed.data.palaces.length} cung, cần đúng 4.`,
         detail: `Các cung đã có: ${parsed.data.palaces.map((p) => p.palaceKey).join(', ')}`,
+      };
+    }
+
+    /* Đúng 4 phần tử chưa đủ: mô hình có thể lặp một cung và bỏ cung khác. */
+    const expected = GROUP_META[i].keys;
+    const got = parsed.data.palaces.map((p) => p.palaceKey);
+    const missing = expected.filter((k) => !got.includes(k));
+    const extra = [...new Set(got.filter((k) => !expected.includes(k)))];
+    const duplicated = [...new Set(got.filter((k, idx) => got.indexOf(k) !== idx))];
+    if (missing.length || extra.length || duplicated.length) {
+      return {
+        ok: false,
+        error: `Phần ${n} sai bộ cung của ${GROUP_META[i].label.split('(')[0].trim()}.`,
+        detail: [
+          missing.length ? `thiếu: ${missing.join(', ')}` : '',
+          extra.length ? `thừa: ${extra.join(', ')}` : '',
+          duplicated.length ? `lặp: ${duplicated.join(', ')}` : '',
+        ]
+          .filter(Boolean)
+          .join(' · '),
       };
     }
 
