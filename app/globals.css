@@ -2591,6 +2591,21 @@ button.tv-star:focus-visible {
   color: var(--ink);
 }
 
+/* Chú giải mức sáng — chỉ hiện khi ngăn kéo có nêu độ sáng của sao. */
+.drawer-note {
+  margin: 14px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.drawer-note b {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+
 .pill {
   font-size: 10px;
   font-weight: 700;

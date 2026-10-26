@@ -97,6 +97,13 @@ export function StarDrawer({
                 </ul>
               </div>
             )}
+
+            {places.some(({ star }) => star.brightness !== 'Vô') && (
+              <p className="drawer-note">
+                Độ sáng của sao, xếp từ tốt nhất: <b>Miếu › Vượng › Đắc › Lợi › Bình › Bất › Hãm</b>.
+                “Vô” là sao không xét độ sáng.
+              </p>
+            )}
           </>
         ) : (
           <p className="drawer-essence">Chưa có mục từ cho sao này.</p>
