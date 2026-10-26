@@ -182,7 +182,7 @@ export class CohocKnowledgeService {
     const mode = VIEW_MODES[viewMode];
 
     if (!this.opt.enabled) {
-      return this.emptyResult(input, viewMode, 'COHOC_ENABLED=false — bỏ qua tầng tri thức cổ học.');
+      return this.emptyResult(viewMode, 'COHOC_ENABLED=false — bỏ qua tầng tri thức cổ học.');
     }
 
     const cacheKey = this.cacheKey(input, viewMode);
@@ -235,7 +235,6 @@ export class CohocKnowledgeService {
 
       const msg = err instanceof Error ? err.message : String(err);
       return this.emptyResult(
-        input,
         viewMode,
         `Không lấy được văn bản cổ học: ${msg}. Bản luận chỉ dựa trên lá số đã an — vẫn đầy đủ 12 cung, nhưng thiếu dẫn chiếu sách cổ.`,
       );
@@ -443,7 +442,7 @@ export class CohocKnowledgeService {
     return { html, finalUrl: res.url || url };
   }
 
-  private emptyResult(input: CohocFetchInput, viewMode: string, warning: string): RawClassicalTexts {
+  private emptyResult(viewMode: string, warning: string): RawClassicalTexts {
     return {
       sourceUrl: `${BASE}${SOLAR_FORM_PATH}`,
       fetchedAt: new Date().toISOString(),
@@ -458,7 +457,7 @@ export class CohocKnowledgeService {
       metrics: null,
       extras: null,
       stats: { rawChars: 0, cleanedChars: 0, passageCount: 0, dedupedCount: 0, truncatedCount: 0 },
-      warnings: [warning, `Input: ${input.solarDate} / ${input.gender} / timeIndex=${input.timeIndex}`],
+      warnings: [warning],
     };
   }
 }

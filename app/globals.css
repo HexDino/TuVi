@@ -1996,16 +1996,6 @@ select {
   color: var(--ink);
 }
 
-.warn {
-  background: var(--amber-soft);
-  border: 1px solid #ead9a6;
-  color: #6f4f00;
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  font-size: 12px;
-  line-height: 1.55;
-}
-
 .err {
   background: var(--danger-soft);
   border: 1px solid #e8c4bb;

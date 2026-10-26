@@ -74,7 +74,6 @@ function fromQuery(q: URLSearchParams): BirthFormValue | null {
 export default function Page() {
   const [chart, setChart] = useState<NormalizedChartJSON | null>(null);
   const [classicalMeta, setClassicalMeta] = useState<ChartApiResponse['classicalMeta'] | null>(null);
-  const [warnings, setWarnings] = useState<string[]>([]);
   const [loadingChart, setLoadingChart] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'board' | 'report'>('board');
@@ -94,7 +93,6 @@ export default function Page() {
 
     setLoadingChart(true);
     setError(null);
-    setWarnings([]);
 
     const body = {
       name: value.name || undefined,
@@ -119,7 +117,6 @@ export default function Page() {
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
       setChart(json.chart as NormalizedChartJSON);
       setClassicalMeta(json.classicalMeta);
-      setWarnings(json.warnings ?? []);
       setLoaded(value);
       setView('board');
     } catch (err) {
@@ -206,14 +203,6 @@ export default function Page() {
 
           {chart && (
             <>
-              {warnings.length > 0 && (
-                <div className="warn no-print" style={{ marginBottom: 14 }}>
-                  {warnings.map((w, i) => (
-                    <div key={i}>• {w}</div>
-                  ))}
-                </div>
-              )}
-
               <div className="toolbar no-print">
                 <div className="mode-toggle">
                   <button data-active={view === 'board'} onClick={() => setView('board')}>
@@ -249,13 +238,14 @@ export default function Page() {
                       extras={classicalMeta.extras}
                       chart={chart}
                     />
-                  ) : (
+                  ) : chart.meta.lunar.isLeapMonth ? (
                     <p className="cohoc-absent">
-                      {chart.meta.lunar.isLeapMonth
-                        ? `Không có tầng cổ học: lá số sinh vào tháng ${chart.meta.lunar.month} nhuận, mà cohoc.net không có tuỳ chọn tháng nhuận — số liệu trả về sẽ thuộc một lá số khác, nên ứng dụng bỏ thay vì hiển thị sai. Bảng lá số và điểm engine vẫn đầy đủ.`
-                        : 'Không tải được tầng cổ học cho lá số này (nguồn lỗi hoặc đang bảo trì). Bảng lá số và điểm engine vẫn đầy đủ.'}
+                      Không có tầng cổ học: lá số sinh vào tháng {chart.meta.lunar.month} nhuận, mà
+                      cohoc.net không có tuỳ chọn tháng nhuận — số liệu trả về sẽ thuộc một lá số
+                      khác, nên ứng dụng bỏ thay vì hiển thị sai. Bảng lá số và điểm engine vẫn đầy
+                      đủ.
                     </p>
-                  )}
+                  ) : null}
                 </div>
               )}
 
