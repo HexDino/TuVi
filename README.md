@@ -658,9 +658,8 @@ Tồn, Thiên Mã, Tuần, Triệt). Viết ngắn theo lối sách cổ, không
    engine chỉ cảnh báo, không tự quy đổi.
 8. **Tháng nhuận đã nhập được, nhưng tầng cổ học bị bỏ qua.** Form có ô "Tháng nhuận" và tuỳ chọn
    `fixLeap`; engine dựng đúng lá số. cohoc.net không có tuỳ chọn tháng nhuận nên văn bản cổ học sẽ
-   thuộc một lá số khác — pipeline chủ động bỏ tầng này, trả cờ `classicalSkip: 'leap-month'` và
-   giao diện ghi rõ lý do ngay chỗ đáng lẽ là bảng Đẩu Minh; bản luận khi đó chỉ dựa trên lá số
-   engine.
+   thuộc một lá số khác — pipeline chủ động bỏ tầng này, trả cờ `classicalSkip: 'leap-month'`;
+   bản luận khi đó chỉ dựa trên lá số engine. Giao diện không hiện thông báo kỹ thuật nào.
 9. **`quote-real` chỉ mạnh bằng nguồn đã tải.** Validator đối chiếu câu phú với văn bản cổ học hiện
    có; nếu tầng cổ học bị tắt hoặc không tải được, mọi câu phú đều bị đánh rớt (không có gì để đối
    chiếu). Đây là hành vi cố ý: thà báo "chưa kiểm chứng được" còn hơn cho qua một câu phú bịa.

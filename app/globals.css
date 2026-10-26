@@ -2698,18 +2698,6 @@ button.tv-star:focus-visible {
   padding: 12px 14px;
 }
 
-/* Lá số không có tầng cổ học (tháng nhuận, hoặc nguồn lỗi): nói rõ ngay chỗ
-   đáng lẽ là bảng Đẩu Minh, thay vì để trống rồi người đọc tự đoán. */
-.cohoc-absent {
-  margin: 14px 0 0;
-  padding: 10px 12px;
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  font-size: 13.5px;
-  line-height: 1.6;
-  color: var(--muted);
-}
 
 .cohoc-panel > summary {
   cursor: pointer;
