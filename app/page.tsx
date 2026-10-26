@@ -175,9 +175,6 @@ export default function Page() {
       <header className="masthead no-print">
         <div>
           <h1>Tử Vi Đẩu Số</h1>
-          <div className="sub">
-            Lá số an bằng engine chuẩn · đối chiếu cổ học · luận giải qua gói kỹ năng Gemini
-          </div>
         </div>
       </header>
 

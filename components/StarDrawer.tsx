@@ -85,7 +85,13 @@ export function StarDrawer({
                       <b>{palace.name}</b> — {palace.stem} {palace.branch}
                       {star.brightness !== 'Vô' && ` · ${star.brightness}`}
                       {star.mutagen && ` · Hóa ${star.mutagen}`}
-                      <span className={`pill g-${palace.score.grade}`}>{palace.score.total}</span>
+                      <span
+                        className={`pill g-${palace.score.grade}`}
+                        title={`Điểm cung ${palace.score.total}/100`}
+                        aria-label={`Điểm cung ${palace.score.total} trên 100`}
+                      >
+                        {palace.score.total}
+                      </span>
                     </li>
                   ))}
                 </ul>
