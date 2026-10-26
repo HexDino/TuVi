@@ -98,7 +98,7 @@ function CopyIcon() {
   );
 }
 
-export function ChatBridge({ value }: { value: BirthFormValue }) {
+export function ChatBridge({ value, skipClassical = false }: { value: BirthFormValue; skipClassical?: boolean }) {
   const [install, setInstall] = useState<SkillInstall>('inline');
   const [skillMode, setSkillMode] = useState<SkillMode>('full');
   const [delivery, setDelivery] = useState<SkillDelivery>('parts');
@@ -110,6 +110,8 @@ export function ChatBridge({ value }: { value: BirthFormValue }) {
   const [copiedPart, setCopiedPart] = useState<number | null>(null);
   const [folderSaved, setFolderSaved] = useState<string | null>(null);
   const [folderBusy, setFolderBusy] = useState(false);
+  /** Nút "Thử lại" tăng số này để chạy lại useEffect tải payload. */
+  const [retry, setRetry] = useState(0);
 
   /** Bản inline luôn chia 4 lượt — xem ghi chú ở `app/api/report/export/route.ts`. */
   const requestDelivery: SkillDelivery = install === 'inline' ? 'parts' : delivery;
@@ -133,6 +135,7 @@ export function ChatBridge({ value }: { value: BirthFormValue }) {
     setLoading(true);
     setPayload(null);
     setCopied(false);
+    setError(null);
 
     (async () => {
       try {
@@ -144,12 +147,30 @@ export function ChatBridge({ value }: { value: BirthFormValue }) {
             skillMode,
             skillDelivery: requestDelivery,
             skillInstall: install,
+            /* Lá số đã không có văn bản cổ học thì đừng thử lại nguồn lần nữa:
+               mỗi lần thử là một lượt chờ cohoc, dễ thành lỗi máy chủ. */
+            skipClassical,
           }),
         });
-        const json = await res.json();
+        /* Phải đọc dạng text rồi tự parse: khi Worker quá tải hoặc lỗi, phản hồi
+           là trang HTML; gọi thẳng res.json() sẽ ném "Unexpected token '<'" —
+           người dùng chỉ thấy một câu vô nghĩa. */
+        const raw = await res.text();
+        let json: PayloadResponse | null = null;
+        try {
+          json = raw ? (JSON.parse(raw) as PayloadResponse) : null;
+        } catch {
+          json = null;
+        }
         if (!alive) return;
-        if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
-        setPayload(json as PayloadResponse);
+        if (!json) {
+          throw new Error('Máy chủ đang bận hoặc mất kết nối. Thử lại sau vài giây.');
+        }
+        if (!res.ok) {
+          const message = (json as PayloadResponse & { error?: string }).error;
+          throw new Error(message ?? `Máy chủ trả lỗi ${res.status}.`);
+        }
+        setPayload(json);
       } catch (err) {
         if (alive) setError(err instanceof Error ? err.message : String(err));
       } finally {
@@ -160,7 +181,7 @@ export function ChatBridge({ value }: { value: BirthFormValue }) {
       alive = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [install, skillMode, requestDelivery, value.date, value.hour, value.minute, value.gender, value.calendarType, value.viewingYear, value.name, value.isLeapMonth, value.fixLeap]);
+  }, [install, skillMode, requestDelivery, skipClassical, retry, value.date, value.hour, value.minute, value.gender, value.calendarType, value.viewingYear, value.name, value.isLeapMonth, value.fixLeap]);
 
   useEffect(() => {
     setActivePart(0);
@@ -433,6 +454,9 @@ export function ChatBridge({ value }: { value: BirthFormValue }) {
       {error && (
         <div className="chatbridge-error">
           <b>{error}</b>
+          <button className="chatbridge-retry" onClick={() => setRetry((n) => n + 1)}>
+            Thử lại
+          </button>
         </div>
       )}
     </>

@@ -249,7 +249,9 @@ export default function Page() {
                 </div>
               )}
 
-              {view === 'report' && loaded && <ChatBridge value={loaded} />}
+              {view === 'report' && loaded && (
+                <ChatBridge value={loaded} skipClassical={classicalMeta?.available === false} />
+              )}
             </>
           )}
         </section>

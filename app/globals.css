@@ -3058,6 +3058,10 @@ button.tv-star:focus-visible {
 }
 
 .chatbridge-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
   background: var(--danger-soft);
   border: 1px solid #e6c3c0;
   border-radius: var(--radius-sm);
@@ -3065,6 +3069,22 @@ button.tv-star:focus-visible {
   font-size: 13.5px;
   line-height: 1.6;
   color: #7c2f2a;
+}
+
+.chatbridge-retry {
+  margin-left: auto;
+  border: 1px solid #c98d80;
+  background: var(--surface);
+  color: #7c2f2a;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.chatbridge-retry:hover {
+  filter: brightness(0.97);
 }
 
 /* thiết lập kỹ năng trong hộp thoại chat */
