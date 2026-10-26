@@ -35,9 +35,9 @@ thuẫn** với dữ liệu lá số, có điểm số từng cung, và UI hiệ
 - **Cầu nối Gemini**: sao chép (có icon, kèm đường dự phòng cho HTTP nội bộ) → dán vào Gemini →
   đọc kết quả ngay trong Gemini.
 - **Cache cổ học 30 ngày**: 1 lá số = 1 request lên cohoc.net; các lần sau đọc từ đĩa.
-- **Bàn lá số theo bề rộng màn hình**: lưới 4×4 truyền thống từ 641px trở lên; dưới 640px mỗi cung
-  thành một thẻ xếp dọc và khối thông tin ở giữa lưới (âm dương, cục, vận hạn, mười hai đại hạn)
-  chuyển lên đầu — trên điện thoại không còn thông tin nào nằm ngoài màn hình.
+- **Bàn lá số theo bề rộng màn hình**: lưới 4×4 truyền thống giữ nguyên ở mọi kích thước; dưới
+  640px cả bàn được thu nhỏ cho vừa màn hình (zoom theo bề ngang) để vẫn thấy đủ 12 cung đúng vị
+  trí, kèm nút **Xem lớn** mở toàn màn hình ở cỡ desktop, cuộn được hai chiều khi cần đọc kỹ.
 
 ## Công nghệ
 

@@ -751,6 +751,24 @@ select {
   padding-bottom: 4px;
 }
 
+/* Chỉ hiện trên điện thoại — bàn lá số thu nhỏ cho vừa màn hình, nút này mở
+   toàn màn hình ở cỡ thật để đọc chữ. */
+.tv-zoom-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
 .tv-board {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3266,92 +3284,37 @@ button.tv-star:focus-visible {
    ra ngoài màn hình. Dưới 640px mỗi cung là một thẻ đầy đủ, thẻ thông tin chung
    đứng đầu; lưới 4×4 giữ nguyên từ máy tính bảng trở lên. */
 @media screen and (max-width: 640px) {
+  /* Bàn lá số giữ nguyên lưới 4×4 cổ điển. Màn hẹp thì thu nhỏ CẢ BÀN cho vừa
+     (zoom do ChartBoard tính theo bề ngang), nên vẫn thấy đủ 12 cung đúng vị trí;
+     muốn đọc chữ thì bấm "Xem lớn" để mở toàn màn hình ở cỡ desktop. */
   .tv-scroll {
-    overflow-x: visible;
+    overflow-x: auto;
     padding-bottom: 0;
   }
 
-  .tv-board {
+  .tv-scroll.tv-zoomed {
+    position: fixed;
+    inset: 0;
+    /* Dưới ngăn kéo tra cứu (backdrop 60, drawer 61) để bấm sao vẫn mở được. */
+    z-index: 55;
+    overflow: auto;
+    overscroll-behavior: contain;
+    background: var(--bg);
+    padding: 10px;
+  }
+
+  .tv-zoom-btn {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-width: 0;
-    max-width: none;
-    background: none;
-    border: 0;
-    border-radius: 0;
-    overflow: visible;
-    font-size: 12px;
+    margin-left: auto;
+    margin-bottom: 8px;
   }
 
-  .tv-center {
-    order: -1;
-    padding: 12px;
-    border: 2px solid var(--tv-grid-strong);
-    border-radius: 4px;
-  }
-
-  .tv-center-inner {
-    max-width: none;
-  }
-
-  .tv-cell {
-    padding: 9px 10px 8px;
-    gap: 6px;
-    border: 1px solid var(--tv-grid-strong);
-    border-radius: 4px;
-  }
-
-  .tv-title { font-size: 19px; }
-  .tv-name { font-size: 13px; }
-  .tv-canchi { font-size: 11px; }
-  .tv-score { font-size: 11px; }
-  .tv-vcd { font-size: 13px; }
-  .tv-borrow { font-size: 11px; }
-  .tv-bright { font-size: 10px; }
-  .tv-hoa-chip { font-size: 9.5px; }
-  .tv-foot-line { font-size: 11px; }
-  .tv-year { font-size: 10.5px; }
-
-  .tv-facts,
-  .tv-summary,
-  .tv-han-row,
-  .tv-dv-item {
-    font-size: 11px;
-  }
-
-  /* Giá trị ở đây là dữ liệu — cắt "…" là mất thông tin, nên cho xuống dòng. */
-  .tv-facts b,
-  .tv-summary b {
-    white-space: normal;
-    text-overflow: clip;
-  }
-
-  /* Ba cột khiến can chi của đại hạn bị cắt còn "Mậu D…". */
-  .tv-dv-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 2px 8px;
-  }
-
-  /* Bấm vào sao là lối duy nhất tới trang tra cứu — 19px quá nhỏ để chạm. */
-  .tv-star {
-    min-height: 34px;
-    display: flex;
-    align-items: center;
-    font-size: 12.5px;
-  }
-
-  .tv-star.tv-main-star {
-    justify-content: center;
-    font-size: 16px;
-  }
-
-  .tv-col-right .tv-star {
-    justify-content: flex-end;
-  }
-
-  .tv-star-name {
-    min-width: 0;
+  .tv-zoomed .tv-zoom-btn {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    margin: 0;
+    z-index: 56;
   }
 
   /* Chú giải gọn lại để bàn lá số tới sớm hơn trên màn hình dọc. */

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import type { EarthlyBranch, Mutagen, NormalizedChartJSON, PalaceInfo, StarInfo } from '@/types/tuvi';
 
 /**
@@ -308,9 +309,46 @@ export function ChartBoard({
     ['Năm sinh', meta.yearCanChi],
   ];
 
+  /*
+   * ĐIỆN THOẠI — giữ nguyên hình lá số 4×4 thay vì xếp thành từng thẻ.
+   *
+   * Bàn cần 780px mới đủ chỗ cho bốn cột; màn 390px thì thu nhỏ cả bàn cho vừa
+   * (zoom), người dùng nhìn được toàn cảnh. Muốn đọc chữ thì bấm "Xem lớn": bàn
+   * mở toàn màn hình ở đúng cỡ desktop, cuộn được cả hai chiều.
+   */
+  const BOARD_MIN_WIDTH = 780;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [zoomed, setZoomed] = useState(false);
+  const [fitZoom, setFitZoom] = useState(1);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => {
+      const mobile = window.matchMedia('(max-width: 640px)').matches;
+      /* Rời khỏi màn hẹp thì thoát chế độ xem lớn, để quay lại điện thoại luôn
+         bắt đầu ở dạng thu vừa màn hình. */
+      if (!mobile) setZoomed(false);
+      setFitZoom(mobile ? Math.min(1, el.clientWidth / BOARD_MIN_WIDTH) : 1);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener('resize', update);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, [zoomed]);
+
+  const boardScale = zoomed ? 1 : fitZoom;
+
   return (
-    <div className="tv-scroll">
-      <div className="tv-board">
+    <div className={`tv-scroll${zoomed ? ' tv-zoomed' : ''}`} ref={scrollRef}>
+      <button className="tv-zoom-btn no-print" onClick={() => setZoomed((z) => !z)}>
+        {zoomed ? 'Thu nhỏ' : 'Xem lớn'}
+      </button>
+      <div className="tv-board" style={{ zoom: boardScale }}>
         {chart.palaces.map((p) => {
           const opposite = byBranch.get(p.oppositeBranch);
           return (
