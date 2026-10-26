@@ -394,6 +394,13 @@ export const PALACE_ORDER: PalaceKey[] = [
   'tat_ach',
 ];
 
+/** Nhóm cung theo Tam Hợp — dùng chung cho payload và kỹ năng Gemini. */
+export const PALACE_GROUPS = {
+  career: ['menh', 'quan_loc', 'tai_bach', 'thien_di'],
+  family: ['phuc_duc', 'phu_the', 'tu_nu', 'dien_trach'],
+  social: ['phu_mau', 'huynh_de', 'no_boc', 'tat_ach'],
+} as const satisfies Record<string, readonly PalaceKey[]>;
+
 /* ------------------------------ ĐỊA CHI ---------------------------------- */
 
 export const BRANCHES: EarthlyBranch[] = [

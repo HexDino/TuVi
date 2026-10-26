@@ -1,0 +1,27 @@
+{
+  // Worker riêng của TuVi — không dùng chung gì với worker diễn đàn đang chạy.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tuvi",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  // nodejs_compat: iztro/cheerio là CJS cần `path`, `crypto`, `Buffer`.
+  // global_fetch_strictly_public: fetch lên cohoc.net phải đi ra internet công khai.
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "workers_dev": true,
+  // Cache cohoc.net. Đĩa của workerd chỉ là RAM trong isolate nên bắt buộc phải
+  // có KV, nếu không mỗi lần tỉnh dậy là tải lại trang cũ — sai nguyên tắc
+  // "một lá số một request" đã ghi ở đầu cohoc-knowledge.service.ts.
+  "kv_namespaces": [
+    {
+      "binding": "COHOC_CACHE",
+      "id": "65686cee7fd1455e9da54594ccfa8178"
+    }
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

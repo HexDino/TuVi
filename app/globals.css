@@ -23,14 +23,16 @@
   --radius-sm: 9px;
   --shadow: 0 1px 2px rgba(28, 26, 23, 0.04), 0 8px 24px -16px rgba(28, 26, 23, 0.28);
   /*
-   * Font: ưu tiên font hệ thống có ĐẦY ĐỦ glyph tiếng Việt dựng sẵn.
-   * Từng dùng ui-serif/Georgia cho phần đọc → trên máy thiếu Georgia, trình duyệt
-   * fallback sang serif không có glyph "ề/ộ/ấ", dấu bị tách rời thành "ph ầ n".
-   * Đổi sang Segoe UI / system-ui: luôn đúng dấu, vẫn đọc tốt ở cỡ 16.5px.
+   * Font: Be Vietnam Pro (khai ở app/layout.tsx, next/font tự host) rồi mới đến
+   * các font hệ thống. Từng dùng ui-serif/Georgia cho phần đọc → trên máy thiếu
+   * Georgia, trình duyệt fallback sang serif không có glyph "ề/ộ/ấ", dấu bị tách
+   * rời thành "ph ầ n". Be Vietnam Pro dựng đủ dấu tiếng Việt và rộng hơn
+   * Segoe UI một chút nên chữ nhỏ vẫn dễ đọc.
    */
-  --font: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, 'Noto Sans',
-    'Liberation Sans', sans-serif;
-  --serif: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  --font: var(--font-ui), 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial,
+    'Noto Sans', 'Liberation Sans', sans-serif;
+  --serif: var(--font-ui), 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif;
 }
 
 * {
@@ -761,8 +763,10 @@ select {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   grid-template-rows: repeat(4, minmax(230px, auto));
   /* Thu nhỏ chữ theo bề ngang thay vì đổi số cột — đổi số cột là nguyên nhân
-     làm vỡ bố cục trước đây. Dưới 840px thì cuộn ngang. */
-  min-width: 840px;
+     làm vỡ bố cục trước đây. Dưới 780px thì cuộn ngang; 780px để khung nội dung
+     thật của desktop (viewport 1280 trừ sidebar/padding ≈ 823px) vừa khít, không
+     phải cuộn 17px như mức 840 cũ. */
+  min-width: 780px;
   max-width: 1040px;
   margin: 0 auto;
   background: var(--tv-paper);
@@ -2678,6 +2682,19 @@ button.tv-star:focus-visible {
   padding: 12px 14px;
 }
 
+/* Lá số không có tầng cổ học (tháng nhuận, hoặc nguồn lỗi): nói rõ ngay chỗ
+   đáng lẽ là bảng Đẩu Minh, thay vì để trống rồi người đọc tự đoán. */
+.cohoc-absent {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
 .cohoc-panel > summary {
   cursor: pointer;
   list-style: none;
@@ -3002,7 +3019,7 @@ button.tv-star:focus-visible {
 }
 
 .chatbridge-status {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--muted);
   padding: 10px 0;
 }
@@ -3020,20 +3037,15 @@ button.tv-star:focus-visible {
 }
 
 .chatbridge-step-head b {
-  font-size: 13px;
+  font-size: 14.5px;
   color: var(--ink);
-}
-
-.chatbridge-step-head span {
-  font-size: 11px;
-  color: var(--muted);
 }
 
 .chatbridge-text {
   width: 100%;
   font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
-  font-size: 11px;
-  line-height: 1.55;
+  font-size: 12.5px;
+  line-height: 1.6;
   color: var(--ink-2);
   background: var(--surface-2);
   border: 1px solid var(--line-strong);
@@ -3052,7 +3064,7 @@ button.tv-star:focus-visible {
   border: 1px solid #e6c3c0;
   border-radius: var(--radius-sm);
   padding: 10px 12px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.6;
   color: #7c2f2a;
 }
@@ -3062,12 +3074,12 @@ button.tv-star:focus-visible {
   background: var(--surface-2);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  padding: 11px 14px;
+  padding: 12px 14px;
   margin-bottom: 14px;
 }
 
 .chatbridge-setup > b {
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--accent);
@@ -3077,12 +3089,12 @@ button.tv-star:focus-visible {
   margin: 8px 0 0;
   padding-left: 18px;
   display: grid;
-  gap: 5px;
+  gap: 6px;
 }
 
 .chatbridge-setup li {
-  font-size: 12.5px;
-  line-height: 1.65;
+  font-size: 14px;
+  line-height: 1.6;
   color: var(--ink-2);
 }
 
@@ -3101,9 +3113,9 @@ button.tv-star:focus-visible {
   border: 1px solid var(--accent);
   background: var(--accent);
   color: #fff;
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 3px 10px;
+  padding: 4px 11px;
   border-radius: 999px;
   text-decoration: none;
 }
@@ -3114,46 +3126,22 @@ button.tv-star:focus-visible {
 }
 
 .chatbridge-warn {
-  margin: 9px 0 0;
-  font-size: 11.5px;
-  line-height: 1.65;
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
   color: #6f4f00;
   background: var(--amber-soft);
   border-radius: 4px;
-  padding: 7px 9px;
-}
-
-.chatbridge-sub {
-  font-size: 11.5px;
-  line-height: 1.6;
-  color: var(--muted);
-  margin: 0 0 12px;
-}
-
-.chatbridge-caveat {
-  margin: 8px 0 10px;
-  font-size: 12px;
-  line-height: 1.65;
-  color: #7c2f2a;
-  background: var(--danger-soft);
-  border-radius: 4px;
-  padding: 7px 9px;
-}
-
-.chatbridge-caveat code {
-  font-size: 11.5px;
-  background: rgba(0, 0, 0, 0.06);
-  padding: 0 3px;
-  border-radius: 3px;
+  padding: 8px 10px;
 }
 
 .chatbridge-inline-btn {
   border: 1px solid var(--accent);
   background: var(--surface);
   color: var(--accent);
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 600;
-  padding: 3px 10px;
+  padding: 4px 11px;
   border-radius: 999px;
   cursor: pointer;
 }
@@ -3166,14 +3154,14 @@ button.tv-star:focus-visible {
 .chatbridge-ok {
   color: #1d4a3a;
   font-weight: 600;
-  font-size: 11.5px;
+  font-size: 13px;
 }
 
 /* chữ dẫn ngay dưới tiêu đề hộp thiết lập */
 .chatbridge-lead {
   margin: 8px 0 10px;
-  font-size: 12.5px;
-  line-height: 1.65;
+  font-size: 14px;
+  line-height: 1.6;
   color: var(--ink-2);
 }
 
@@ -3188,8 +3176,8 @@ button.tv-star:focus-visible {
   border: 1px solid var(--line-strong);
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 12px;
-  padding: 6px 11px;
+  font-size: 13px;
+  padding: 6px 12px;
   border-radius: 999px;
   cursor: pointer;
   transition: all 0.15s;
@@ -3214,6 +3202,10 @@ button.tv-star:focus-visible {
 }
 
 .chatbridge-go {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   border: 1px solid var(--accent);
   background: var(--accent);
   color: #fff;

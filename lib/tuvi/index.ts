@@ -6,7 +6,6 @@
 export * from './chart-generator.service';
 export * from './cohoc-knowledge.service';
 export * from './cohoc-parser';
-export * from './report-assembly';
 export * from './prompt-builder';
 export * from './scoring';
 export * from './pipeline';

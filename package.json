@@ -13,7 +13,9 @@
     "cohoc:test": "tsx scripts/test-cohoc.ts",
     "pipeline:test": "tsx scripts/test-pipeline.ts",
     "ui:test": "tsx scripts/test-ui-date.ts",
-    "snapshot": "tsx --tsconfig tsconfig.scripts.json scripts/build-snapshot.ts"
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare build && wrangler dev",
+    "cf:deploy": "opennextjs-cloudflare build && wrangler deploy"
   },
   "dependencies": {
     "cheerio": "^1.0.0",
@@ -24,10 +26,12 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "^1.20.13",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "tsx": "^4.20.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "wrangler": "^4.152.0"
   }
 }

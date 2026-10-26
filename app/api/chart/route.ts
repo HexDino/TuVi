@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   const input = parsed.data;
 
   try {
-    const { chart, classical, warnings } = await analyzeChart(
+    const { chart, classical, warnings, classicalSkip } = await analyzeChart(
       {
         name: input.name,
         gender: input.gender,
@@ -66,6 +66,7 @@ export async function POST(req: Request) {
             annualCount: classical.annual.length,
           }
         : { available: false },
+      classicalSkip,
       warnings,
     });
   } catch (err) {

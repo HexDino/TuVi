@@ -31,6 +31,8 @@ interface PayloadResponse {
   parts?: SkillPartPayload[];
   chars: number;
   tokenEstimate: number;
+  /** false = lá số không có văn bản cổ học (tháng nhuận, nguồn lỗi) → ẩn mức dữ liệu. */
+  classicalAvailable?: boolean;
 }
 
 type SkillMode = 'full' | 'compact';
@@ -73,6 +75,29 @@ async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
+/**
+ * Hai ô chồng nhau — dấu hiệu "sao chép" quen thuộc. Vẽ nội tuyến để không phải
+ * thêm bộ icon chỉ vì một hình.
+ */
+function CopyIcon() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
 export function ChatBridge({ value }: { value: BirthFormValue }) {
   const [install, setInstall] = useState<SkillInstall>('inline');
   const [skillMode, setSkillMode] = useState<SkillMode>('full');
@@ -85,7 +110,6 @@ export function ChatBridge({ value }: { value: BirthFormValue }) {
   const [copiedPart, setCopiedPart] = useState<number | null>(null);
   const [folderSaved, setFolderSaved] = useState<string | null>(null);
   const [folderBusy, setFolderBusy] = useState(false);
-  const [canShare, setCanShare] = useState(false);
 
   /** Bản inline luôn chia 4 lượt — xem ghi chú ở `app/api/report/export/route.ts`. */
   const requestDelivery: SkillDelivery = install === 'inline' ? 'parts' : delivery;
@@ -103,10 +127,6 @@ export function ChatBridge({ value }: { value: BirthFormValue }) {
     isLeapMonth: value.isLeapMonth,
     fixLeap: value.fixLeap,
   };
-
-  useEffect(() => {
-    setCanShare(typeof navigator.share === 'function');
-  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -218,27 +238,6 @@ export function ChatBridge({ value }: { value: BirthFormValue }) {
     [markCopied],
   );
 
-  /**
-   * Đẩy nội dung sang bảng chia sẻ của hệ điều hành — trên điện thoại bớt được
-   * một bước dán. Bảng chia sẻ có thể bị đóng vì khối chữ quá dài, nên vẫn rơi
-   * về sao chép; nút đổi nhãn "Đã sao chép" là người dùng biết mình đang ở đâu.
-   */
-  const shareText = useCallback(
-    async (text: string, title: string, part: number | null) => {
-      if (canShare) {
-        try {
-          await navigator.share({ title, text });
-          return;
-        } catch (err) {
-          if ((err as Error).name === 'AbortError') return;
-        }
-      }
-      if (await copyToClipboard(text)) markCopied(part);
-      else setError('Không chia sẻ được và trình duyệt cũng không cho sao chép. Hãy bôi đen ô chữ và sao chép thủ công.');
-    },
-    [canShare, markCopied],
-  );
-
   const body = (
     <>
       <div className="chatbridge-head">
@@ -264,26 +263,24 @@ export function ChatBridge({ value }: { value: BirthFormValue }) {
         <div className="chatbridge-setup">
           <b>Không cần cài đặt gì</b>
           <p className="chatbridge-lead">
-            Mỗi phần dưới đây đã gồm sẵn <b>bộ luật + dữ liệu lá số</b>, nên dán thẳng vào Gemini
-            là chạy — dùng trên điện thoại vẫn được, không phải tải tệp kỹ năng lên.
+            Mỗi phần đã gồm sẵn <b>bộ luật + dữ liệu lá số</b> — dán thẳng vào Gemini là chạy.
           </p>
           <ol>
             <li>
-              Mở <a href={GEMINI_URL} target="_blank" rel="noreferrer">Gemini</a> — ứng dụng trên
-              điện thoại hoặc bản web trên máy tính đều dùng được.
+              Mở <a href={GEMINI_URL} target="_blank" rel="noreferrer">Gemini</a> (app hoặc web).
             </li>
             <li>
-              Bấm <b>Sao chép</b> ở phần 1. Trên điện thoại, bấm <b>Chia sẻ</b> rồi chọn Gemini nếu
-              trình duyệt có sẵn bảng chia sẻ.
+              Bấm <b>Sao chép</b> ở phần 1.
             </li>
             <li>
-              Dán vào ô chat, gửi đi. Làm lần lượt 4 phần, mỗi phần một chat mới — không cần giữ
-              lịch sử giữa các chat.
+              Dán vào ô chat, gửi đi. Dán lần lượt 4 phần vào <b>cùng một chat</b> — đừng mở chat mới.
+            </li>
+            <li>
+              Xong phần 4, hỏi tiếp thoải mái; Gemini dừng giữa chừng thì gõ “tiếp”.
             </li>
           </ol>
           <p className="chatbridge-warn">
-            Cách này không cần bật Keep Activity. Mỗi phần dài hơn bản có kỹ năng vì mang theo bộ
-            luật. Muốn bản luận ít bị "Saved info" chi phối thì xóa hoặc tắt nó tại{' '}
+            Không cần bật Keep Activity. Muốn bản luận ít bị “Saved info” chi phối thì tắt nó tại{' '}
             <a href="https://gemini.google.com/saved-info" target="_blank" rel="noreferrer">
               Saved info
             </a>
@@ -295,73 +292,55 @@ export function ChatBridge({ value }: { value: BirthFormValue }) {
       {install === 'installed' && (
         <div className="chatbridge-setup">
           <b>Cài một lần</b>
-          <p className="chatbridge-caveat">
-            Cách này cần tải tệp lên Gemini, mà ứng dụng Gemini trên điện thoại <b>không có nút
-            tải kỹ năng</b> — chỉ làm được trên máy tính. Ở điện thoại hãy chọn lại “Không cần cài”.
-          </p>
           <p className="chatbridge-lead">
-            Gemini nhận thẳng <b>SKILL.md</b>, một <b>thư mục</b>, hoặc <b>tệp .zip</b> có{' '}
-            <code>SKILL.md</code> ở thư mục gốc. Gói của ứng dụng đã gồm <code>SKILL.md</code> và
-            thư mục <code>references/</code> — chỉ cần tải một lần.
+            Chỉ làm được trên máy tính — Gemini trên điện thoại <b>không có nút tải kỹ năng</b>. Ở
+            điện thoại hãy chọn lại “Không cần cài”.
           </p>
           <ol>
             <li>
-              <b>Bật Keep Activity.</b> Trong Gemini, mở{' '}
-              <i>Cài đặt &amp; trợ giúp → Hoạt động → Giữ hoạt động (Keep Activity)</i> và bật
-              lên. Kỹ năng yêu cầu mục này; tắt đi thì không tạo hoặc dùng kỹ năng được.
+              Bật <b>Keep Activity</b>: <i>Cài đặt &amp; trợ giúp → Hoạt động → Giữ hoạt động</i>.
             </li>
             <li>
-              <b>Tải gói.</b>{' '}
               <a className="chatbridge-zip-btn" href="/api/skill?format=zip">
                 Tải gói .zip
               </a>{' '}
-              — cách nhanh nhất. Hoặc{' '}
+              hoặc{' '}
               <button className="chatbridge-inline-btn" onClick={saveToFolder} disabled={folderBusy}>
                 {folderBusy ? 'Đang ghi…' : 'Chọn thư mục & ghi'}
-              </button>{' '}
-              nếu muốn để dạng thư mục.{' '}
+              </button>
               {folderSaved && <span className="chatbridge-ok">đã ghi vào “{folderSaved}”</span>}
             </li>
             <li>
-              <b>Tải lên Gemini.</b> Mở <i>Tùy chỉnh (Customize) → Kỹ năng (Skills)</i>; không
-              thấy Tùy chỉnh thì bấm <i>Thêm (More)</i>. Bấm <i>Tạo (Create) → Tải lên (Upload)</i>,
-              rồi chọn tệp .zip hoặc kéo cả thư mục vào. Tên kỹ năng phải viết thường, có gạch nối —
-              gói này đã đặt sẵn <code>tuvi-dau-so</code>.
+              Trong Gemini: <i>Tùy chỉnh → Kỹ năng → Tạo → Tải lên</i>, chọn tệp .zip.
             </li>
             <li>
-              <b>Gọi kỹ năng.</b> Trong chat, gõ <code>/</code> (hoặc <code>@</code>) và chọn{' '}
-              <code>tuvi-dau-so</code>. Không thấy tên này thì quay lại bước 3. Sau đó dán dữ liệu
-              phần 1; với 3 phần còn lại, gọi lại kỹ năng trước khi dán.
+              Ở chat, gõ <code>/</code> rồi chọn <code>tuvi-dau-so</code>, dán phần 1. Ba phần sau
+              gọi lại kỹ năng rồi dán <b>tiếp vào cùng chat</b>; dừng giữa chừng thì gõ “tiếp”.
             </li>
           </ol>
           <p className="chatbridge-warn">
-            Kỹ năng là bộ luật cố định, dùng lại được qua các chat; mỗi chat vẫn có ngữ cảnh riêng.
-            Kỹ năng không tắt được Saved info/Memory ở cấp tài khoản — muốn giảm ảnh hưởng, xóa tại{' '}
+            Đừng tắt Keep Activity. Kỹ năng không chặn được “Saved info” — cần thì xóa tại{' '}
             <a href="https://gemini.google.com/saved-info" target="_blank" rel="noreferrer">
               Saved info
-            </a>{' '}
-            hoặc tắt <i>Memory</i> trong <i>Cài đặt → Personal Intelligence</i>. Đừng tắt Keep
-            Activity.
-          </p>
-          <p className="chatbridge-sub">
-            Gói .zip đã kèm 3 tệp trong <code>references/</code>. Nếu tải lẻ, đặt chúng đúng thư mục{' '}
-            <code>references/</code> cạnh <code>SKILL.md</code>; thiếu tệp tham khảo thì kỹ năng
-            vẫn chạy nhưng mất ví dụ.
+            </a>
+            .
           </p>
         </div>
       )}
 
-      <div className="chatbridge-step-head" style={{ marginBottom: 6 }}>
-        <b>Mỗi lá số: chọn mức dữ liệu</b>
-        <div className="mode-toggle" style={{ marginLeft: 'auto' }}>
-          <button data-active={skillMode === 'full'} onClick={() => setSkillMode('full')}>
-            Kèm cổ học
-          </button>
-          <button data-active={skillMode === 'compact'} onClick={() => setSkillMode('compact')}>
-            Gọn
-          </button>
+      {payload?.classicalAvailable !== false && (
+        <div className="chatbridge-step-head" style={{ marginBottom: 6 }}>
+          <b>Mỗi lá số: chọn mức dữ liệu</b>
+          <div className="mode-toggle" style={{ marginLeft: 'auto' }}>
+            <button data-active={skillMode === 'full'} onClick={() => setSkillMode('full')}>
+              Kèm cổ học
+            </button>
+            <button data-active={skillMode === 'compact'} onClick={() => setSkillMode('compact')}>
+              Gọn
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {install === 'installed' && (
         <div className="chatbridge-step-head" style={{ marginBottom: 6 }}>
@@ -377,14 +356,6 @@ export function ChatBridge({ value }: { value: BirthFormValue }) {
         </div>
       )}
 
-      <p className="chatbridge-sub">
-        {requestDelivery === 'parts'
-          ? 'Chia 4 lượt: Tổng quan + 3 nhóm cung. Mỗi lượt gọn hơn nên mô hình luận sâu và ít bị cắt hơn.'
-          : skillMode === 'full'
-            ? 'Có văn bản cổ học của cả 12 cung — bản luận sâu hơn, có dẫn chiếu sách cổ.'
-            : 'Chỉ bảng lá số + điểm engine — dán nhanh, nhưng bản luận nông hơn và độ tin cậy bị hạ.'}
-      </p>
-
       {loading && <div className="chatbridge-status">Đang soạn dữ liệu…</div>}
 
       {payload?.prompt && (
@@ -392,33 +363,18 @@ export function ChatBridge({ value }: { value: BirthFormValue }) {
           <div className="chatbridge-step">
             <div className="chatbridge-step-head">
               <b>Dữ liệu cho cả 4 phần — dán vào chat đã gọi kỹ năng</b>
-              <span>
-                {payload.chars.toLocaleString('vi-VN')} ký tự ≈{' '}
-                {payload.tokenEstimate.toLocaleString('vi-VN')} token
-              </span>
             </div>
             <textarea className="chatbridge-text" readOnly value={payload.prompt} rows={6} />
             <div className="chatbridge-actions">
               <button className="chatbridge-go" onClick={() => void copyText(payload.prompt!, null)}>
                 {copied ? 'Đã sao chép' : 'Sao chép'}
+                <CopyIcon />
               </button>
-              {canShare && (
-                <button
-                  className="btn-ghost"
-                  onClick={() => void shareText(payload.prompt!, 'Tử Vi Đẩu Số — lá số', null)}
-                >
-                  Chia sẻ
-                </button>
-              )}
               <a className="btn-ghost" href={GEMINI_URL} target="_blank" rel="noreferrer">
                 Mở Gemini
               </a>
             </div>
           </div>
-
-          <p className="chatbridge-sub">
-            Câu trả lời hiển thị ngay trong Gemini; ứng dụng không cần nhận lại.
-          </p>
         </>
       )}
 
@@ -440,10 +396,6 @@ export function ChatBridge({ value }: { value: BirthFormValue }) {
           <div className="chatbridge-step">
             <div className="chatbridge-step-head">
               <b>Phần {currentPart.part}: {currentPart.title}</b>
-              <span>
-                {currentPart.chars.toLocaleString('vi-VN')} ký tự ≈{' '}
-                {currentPart.tokenEstimate.toLocaleString('vi-VN')} token
-              </span>
             </div>
             <textarea className="chatbridge-text" readOnly value={currentPart.prompt} rows={8} />
             <div className="chatbridge-actions">
@@ -452,17 +404,8 @@ export function ChatBridge({ value }: { value: BirthFormValue }) {
                 onClick={() => void copyText(currentPart.prompt, currentPart.part)}
               >
                 {copiedPart === currentPart.part ? 'Đã sao chép' : 'Sao chép'}
+                <CopyIcon />
               </button>
-              {canShare && (
-                <button
-                  className="btn-ghost"
-                  onClick={() =>
-                    void shareText(currentPart.prompt, `Tử Vi — phần ${currentPart.part}`, currentPart.part)
-                  }
-                >
-                  Chia sẻ
-                </button>
-              )}
               <a className="btn-ghost" href={GEMINI_URL} target="_blank" rel="noreferrer">
                 Mở Gemini
               </a>
@@ -483,11 +426,6 @@ export function ChatBridge({ value }: { value: BirthFormValue }) {
                 </button>
               </span>
             </div>
-            <p className="chatbridge-sub" style={{ marginTop: 9 }}>
-              {install === 'inline'
-                ? 'Phần này tự chứa bộ luật — dán vào một chat Gemini mới là chạy được ngay.'
-                : 'Kỹ năng đã cài nắm bộ luật, phần này chỉ mang dữ liệu; nhớ gọi lại kỹ năng trước mỗi lượt dán.'}
-            </p>
           </div>
         </>
       )}

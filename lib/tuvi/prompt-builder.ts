@@ -302,7 +302,8 @@ export function buildClassicalSubset(
   keys: PalaceKey[],
   includeOverview = false,
 ): string {
-  if (!texts) return '## B. VĂN BẢN CỔ HỌC\n(KHÔNG CÓ — luận từ lá số, confidence = "thap")';
+  if (!texts)
+    return '## B. VĂN BẢN CỔ HỌC\n(KHÔNG CÓ — luận từ bảng lá số và điểm engine, không dẫn chiếu sách cổ)';
 
   const lines: string[] = [`## B. VĂN BẢN CỔ HỌC THÔ (nguồn: ${texts.sourceUrl})`];
   lines.push('Văn bản ghép từ nhiều trường phái, có thể mâu thuẫn — phân xử theo trọng số.');
@@ -367,9 +368,8 @@ export function buildClassicalSubset(
  * tả trừu tượng ("mỗi câu một thông tin mới"). Mô hình bắt chước mẫu tốt hơn hẳn
  * so với đọc luật, và đây là lever chất lượng mạnh nhất còn bỏ trống.
  *
- * VÌ SAO NẰM Ở ĐÂY chứ không phải trong skill-package: skill-package import
- * `SHAPE_PALACE` từ chat-bundle; nhét thêm hàm này vào đó là tạo vòng import
- * chat-bundle ↔ skill-package. prompt-builder nằm giữa nên chỉ import một chiều.
+ * VÌ SAO NẰM Ở ĐÂY chứ không phải trong skill-package: skill-package import các
+ * khối dữ liệu của file này; để mẫu văn phong ở đây thì chỉ có một chiều import.
  *
  * MẪU DỮ LIỆU ĐÃ KIỂM CHỨNG: mọi sao trong ví dụ đều có thật trong lá số
  * 1990-10-21 (Thiên Đồng Bình + Hóa Kỵ, Kình Dương Hãm, Linh Tinh Đắc tại Nô Bộc
@@ -384,11 +384,18 @@ export function buildFewShot(): string {
 
 Dữ liệu của cung này: ĐIỂM ENGINE 50 · Thiên Đồng (Bình) kèm Hóa Kỵ · Kình Dương (Hãm) · Linh Tinh (Đắc) · không có Thái Âm, Thiên Lương trong cung lẫn xung chiếu.
 
-ĐÚNG — viết thế này:
+ĐÚNG — viết thế này, đúng cả bố cục lẫn nhịp câu:
 
-"Thiên Đồng Bình ở Dậu gặp Hóa Kỵ, nên bạn bè và cấp dưới hay hiểu lầm nhau trước khi hiểu nhau. Kình Dương hãm đồng cung làm chuyện bạn bè dễ thành tranh chấp về tiền hoặc lời hứa. Linh Tinh đắc địa khiến xung đột bùng nhanh, nhưng không kéo dài nếu việc đã rõ ràng. Không gặp Thái Âm hay Thiên Lương thì trợ lực từ người xung quanh ít.
+### Nô Bộc — Thiên Đồng (Bình) · 50/100 · thử thách
+**Bạn bè và cấp dưới dễ hiểu lầm nhau trước khi hiểu nhau.**
 
-Cái giá là phải trả thêm chi phí và thời gian để sửa quan hệ, nhiều lúc mất người chứ không mất việc. Nên lập điều khoản rõ khi hợp tác, và chọn người cùng chí hướng thay vì người quen nhiều."
+Thiên Đồng Bình ở Dậu gặp Hóa Kỵ, nên quan hệ với người cộng tác hay bị hiểu sai ý trước khi kịp giải thích. Kình Dương hãm đồng cung làm chuyện bạn bè dễ thành tranh chấp về tiền hoặc lời hứa. Linh Tinh đắc địa khiến xung đột bùng nhanh, nhưng không kéo dài nếu việc đã rõ ràng. Không gặp Thái Âm hay Thiên Lương thì trợ lực từ người xung quanh ít.
+
+Cái giá là phải trả thêm chi phí và thời gian để sửa quan hệ, nhiều lúc mất người chứ không mất việc. Nên lập điều khoản rõ khi hợp tác, và chọn người cùng chí hướng thay vì người quen nhiều.
+
+- **Mạnh:** quan hệ đông và đa dạng; Linh Tinh đắc giúp xử lý tình huống nhanh.
+- **Rủi ro:** tranh chấp tiền bạc và lời hứa do Kình Dương hãm hội Hóa Kỵ.
+- **Nên làm:** viết điều khoản hợp tác thành văn bản; chọn cộng sự theo chí hướng.
 
 SAI — cùng nội dung, KHÔNG được viết thế này:
 

@@ -246,12 +246,18 @@ export default function Page() {
               {view === 'board' && (
                 <div className="panel panel-pad">
                   <ChartBoard chart={chart} onSelectStar={setStarKey} />
-                  {classicalMeta?.metrics && (
+                  {classicalMeta?.metrics ? (
                     <CohocPanel
                       metrics={classicalMeta.metrics}
                       extras={classicalMeta.extras}
                       chart={chart}
                     />
+                  ) : (
+                    <p className="cohoc-absent">
+                      {chart.meta.lunar.isLeapMonth
+                        ? `Không có tầng cổ học: lá số sinh vào tháng ${chart.meta.lunar.month} nhuận, mà cohoc.net không có tuỳ chọn tháng nhuận — số liệu trả về sẽ thuộc một lá số khác, nên ứng dụng bỏ thay vì hiển thị sai. Bảng lá số và điểm engine vẫn đầy đủ.`
+                        : 'Không tải được tầng cổ học cho lá số này (nguồn lỗi hoặc đang bảo trì). Bảng lá số và điểm engine vẫn đầy đủ.'}
+                    </p>
                   )}
                 </div>
               )}

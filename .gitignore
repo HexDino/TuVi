@@ -8,6 +8,10 @@ node_modules/
 out/
 next-env.d.ts
 
+# output build cho Cloudflare Worker (`npm run cf:build` sinh lại)
+.open-next/
+.wrangler/
+
 # cache (dữ liệu cohoc.net đã bóc tách)
 .cache/
 
@@ -23,11 +27,9 @@ next-env.d.ts
 tsconfig.tsbuildinfo
 
 # output sinh ra khi chạy script — DỮ LIỆU LÁ SỐ, không commit
-# (`npm run snapshot` tạo lại; vài mục là output của script đã bỏ)
 demo/report-real.json
 demo/prompt-*.md
 demo/la-so-*.md
-demo/snapshot.html
 
 # ghi chú nội bộ của AI agent
 .workbuddy-ai/

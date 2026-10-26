@@ -1,7 +1,6 @@
 /**
  * schemas/request.schema.ts
- * Validate body của API route. Dùng chung cho /api/chart, /api/report/export
- * và /api/report/import.
+ * Validate body của API route. Dùng chung cho /api/chart và /api/report/export.
  */
 
 import { z } from 'zod';

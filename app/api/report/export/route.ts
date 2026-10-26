@@ -71,11 +71,14 @@ export async function POST(req: Request) {
         mode,
         install,
         hasClassical: mode === 'full' && Boolean(classical),
+        /* Có nguồn cổ học hay không — tách khỏi `hasClassical` (phụ thuộc chế
+           độ đang chọn) để giao diện biết khi nào KHÔNG nên mời chọn mức dữ liệu. */
+        classicalAvailable: Boolean(classical),
       });
     }
 
     const payload = buildSkillPayload(chart, classical, mode);
-    return Response.json(payload);
+    return Response.json({ ...payload, classicalAvailable: Boolean(classical) });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return Response.json({ error: message }, { status: 500 });

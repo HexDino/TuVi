@@ -11,9 +11,8 @@ Hai tầng tự động:
 
 Một bước thủ công, có kiểm tra:
 
-3. **Gemini** — ứng dụng soạn nội dung để sao chép sang Gemini (1 khối hoặc 4 khối, có/không kèm
-   bộ luật); câu trả lời hiển thị ngay trong Gemini. Phần tách JSON, validate bằng Zod và chấm
-   12 tiêu chí chất lượng vẫn còn trong mã để kiểm thử và dùng qua API nội bộ.
+3. **Gemini** — ứng dụng soạn nội dung để sao chép sang Gemini (một lượt hoặc 4 lượt, có/không kèm
+   bộ luật). Gemini trả lời bằng **Markdown** để đọc ngay trong chat và **hỏi tiếp ngay tại đó**.
 
 Mục tiêu: lá số an chính xác, bản luận giải có chiều sâu như tuvi.cohoc.net nhưng **không mâu
 thuẫn** với dữ liệu lá số, có điểm số từng cung, và UI hiện đại (Bento Grid + Tabs theo Tam Hợp).
@@ -24,15 +23,16 @@ thuẫn** với dữ liệu lá số, có điểm số từng cung, và UI hiệ
   14 chính tinh, phụ tinh, Tứ Hóa, Thân cư, đại vận/lưu niên và điểm engine 0–100 kèm lý do.
 - **Đối chiếu độc lập** với bảng lá số của `tuvi.cohoc.net`, so theo **địa chi cung** (không theo
   tên cung): 36/36 cung khớp trên 3 lá số mẫu.
-- **Kỹ năng Gemini** xuất `SKILL.md` + 3 tệp tham khảo (zip 16 KB): bộ luật cài một lần, mỗi lá
-  số chỉ dán dữ liệu (~6,3–7,4k ký tự mỗi phần, ~36k cho bản một lượt kèm cổ học).
+- **Kỹ năng Gemini** xuất `SKILL.md` + 3 tệp tham khảo (zip 16,2 KB): bộ luật cài một lần, mỗi lá
+  số chỉ dán dữ liệu (7,1–15,4k ký tự mỗi phần, ~36,5k cho bản một lượt kèm cổ học).
 - **Chế độ không cần cài** cho điện thoại: ứng dụng Gemini mobile không có nút tải kỹ năng, nên mỗi
-  phần mang theo bộ luật (~17,5–20,5k ký tự) — dán thẳng vào chat mới là chạy.
-- **Chia 4 lượt** theo Tam Hợp: mỗi lượt một phần độc lập, mô hình còn ngân sách token để luận sâu
-  và ít làm hỏng JSON hơn.
-- **Kiểm tra câu trả lời**: tách 4 khối, validate Zod, chặn sai bộ cung/thứ tự, ghi đè trường dữ
-  liệu bằng lá số engine, chấm 12 tiêu chí nội dung (dùng trong kiểm thử và API nội bộ).
-- **Cầu nối Gemini**: sao chép (hoặc chia sẻ qua bảng chia sẻ của hệ điều hành) → dán vào Gemini →
+  phần mang theo bộ luật (~17,5–21,1k ký tự) — dán thẳng vào chat là chạy.
+- **Chia 4 lượt** theo Tam Hợp: mỗi lượt 4 cung, dán lần lượt vào **cùng một chat**; đầu ra là
+  Markdown (tiêu đề cung, dòng chốt, 2 đoạn ngắn, nhãn Mạnh/Rủi ro/Nên làm) nên đọc được trên
+  điện thoại.
+- **Hỏi tiếp trong chat**: xong phần 4 là hỏi thêm bất cứ điều gì — mô hình trả lời theo đúng
+  sao/cung/đại vận đã dán, không phải sao chép lại dữ liệu.
+- **Cầu nối Gemini**: sao chép (có icon, kèm đường dự phòng cho HTTP nội bộ) → dán vào Gemini →
   đọc kết quả ngay trong Gemini.
 - **Cache cổ học 30 ngày**: 1 lá số = 1 request lên cohoc.net; các lần sau đọc từ đĩa.
 - **Bàn lá số theo bề rộng màn hình**: lưới 4×4 truyền thống từ 641px trở lên; dưới 640px mỗi cung
@@ -47,7 +47,7 @@ thuẫn** với dữ liệu lá số, có điểm số từng cung, và UI hiệ
 | An sao | `iztro` (lang `vi-VN`) + scoring engine tự viết, deterministic |
 | Bóc văn bản cổ học | `cheerio` — POST form ASP.NET của cohoc.net, có cache đĩa |
 | Luận giải | Gói kỹ năng Gemini, người dùng chạy thủ công — không gọi API từ server |
-| Kiểm tra | `zod` (schema đầu ra) + validator 12 tiêu chí + script `tsx` chạy offline |
+| Kiểm tra | Script `tsx` chạy offline (`chart:test`, `pipeline:test`, `payload:audit`, `ui:test`) |
 
 ---
 
@@ -75,7 +75,7 @@ Người dùng nhập ngày giờ sinh
 ┌───────────────────────────────────────────────────────────────┐
 │ PAYLOAD BUILDER                         lib/tuvi/skill-package.ts
 │  buildSkillPayload() | buildSkillPartPayloads()
-│  → 1 khối hoặc 4 khối dữ liệu — kèm bộ luật nếu chọn "không cần cài"
+│  → một lượt hoặc 4 phần dữ liệu — kèm bộ luật nếu chọn "không cần cài"
 └───────────────────────────────────────────────────────────────┘
         │ người dùng sao chép và dán
         ▼
@@ -106,18 +106,12 @@ Kiểm thử từng tầng:
 ```bash
 npm run chart:test      # Module 1: in bảng 12 cung + điểm + assert bất biến
 npm run cohoc:test      # Module 2: POST thật lên cohoc.net, in thống kê + cross-check
-npm run pipeline:test   # offline: prompt/payload, hợp đồng schema ↔ kỹ năng,
-                        #   parser 4 khối, validator 12 tiêu chí, tệp kỹ năng, ZIP
+npm run pipeline:test   # offline: prompt/payload, hợp đồng đầu ra Markdown, tệp kỹ năng, ZIP
 npm run chart:audit     # Chất lượng LÁ SỐ: 144/144 bất biến, đối chiếu bảng sao cohoc
 npm run payload:audit   # Chất lượng PAYLOAD đưa mô hình: 12 cung, tứ hóa, đại vận, lưu niên
-npm run snapshot        # Xuất demo/snapshot.html — xem giao diện không cần Next/Gemini
 ```
 
-`demo/snapshot.html` render bằng chính component của ứng dụng (`react-dom/server`), nên nhìn nó là nhìn
-đúng UI thật. Dữ liệu lá số là thật; phần chữ luận giải là fixture mock (để kiểm tra layout + Zod).
-
-`snapshot` và cache đều nằm trong `.gitignore`: repo **không chứa lá số đã sinh ra**, chỉ chứa
-code. Chạy lại lệnh là có lại file trên máy mình.
+Cache cổ học nằm trong `.gitignore`: repo **không chứa lá số đã sinh ra**, chỉ chứa code.
 
 Kết quả đã chạy thực tế (21–22/10/2026):
 
@@ -125,10 +119,7 @@ Kết quả đã chạy thực tế (21–22/10/2026):
 chart:test     ✓ 5 lá số (gồm tháng nhuận 1995 + fixLeap), 12 cung, 12 đại vận,
                  1 cung Thân, điểm trong [5,98]; ngày không tồn tại bị chặn
 cohoc:test     ✓ 3.7s, 484 đoạn thô → 55.225 ký tự, cross-check "Khớp hoàn toàn"
-pipeline:test  ✓ SKILL.md 9.891/10.000 byte — gói 4 tệp, có §6 chiều sâu + §10 tự kiểm
-               ✓ kỹ năng chia 4 lượt: đúng 4 phần, đúng bộ cung, mỗi phần < 30k ký tự
-               ✓ parser nhận đủ 4 khối; chặn sai bộ cung và thứ tự cung
-               ✓ validator 12 tiêu chí bắt được count-12 / evidence-real / score-delta / quote-real
+pipeline:test  ✓ gói 4 tệp, hợp đồng Markdown, 4 phần đúng bộ cung, mỗi phần < 30k ký tự
 payload-audit  ✓ 0 lỗi dữ liệu — bảng 12 cung, 4 tứ hóa, 12 đại vận, lưu niên khớp engine
 ```
 
@@ -141,6 +132,35 @@ Biến môi trường:
 Không có `LLM_API_KEY`: mọi lượt gọi mô hình đều diễn ra trong tài khoản Gemini của người dùng,
 không qua server này.
 
+### Deploy lên Cloudflare Worker
+
+Worker tên `tuvi`, chạy cô lập với các worker khác trong tài khoản: không dùng chung code,
+không dùng chung tên miền, không dùng chung secret. Chỉ có một binding ra ngoài là KV namespace
+`COHOC_CACHE` (id khai trong `wrangler.jsonc`) chứa bản cache cohoc.net.
+
+```bash
+npm run cf:build      # next build + gói OpenNext → .open-next/worker.js
+npm run cf:preview    # build + wrangler dev → http://127.0.0.1:8787
+npm run cf:deploy     # build + đẩy lên https://tuvi.<subdomain>.workers.dev
+```
+
+`cf:build` gọi `next build` bên trong, nên **dừng `npm run dev` trước khi chạy** — hai tiến trình
+ghi chồng lên nhau là hỏng cache chunk.
+
+Hai thứ bắt buộc phải có mà machine thông thường không cần:
+
+| Tệp | Vì sao |
+|---|---|
+| `open-next.config.ts` | Không có là `opennextjs-cloudflare build` abort ngay. |
+| `compatibility_flags` trong `wrangler.jsonc` | `nodejs_compat` cho iztro/cheerio (CJS cần `path`, `crypto`, `Buffer`); `global_fetch_strictly_public` để `fetch` sang cohoc.net thật sự ra internet công khai thay vì quẩn trong hệ thống Cloudflare. |
+
+Cache cổ học trên Worker đi qua KV chứ không qua đĩa. Lý do đã đo thật: `node:fs` của workerd chỉ là
+bộ nhớ trong isolate, tắt isolate là mất; nếu cứ dùng FileStore thì mỗi lần tỉnh dậy là tải lại
+cohoc.net, trái nguyên tắc "một lá số một request". `lib/tuvi/cohoc-store.ts` vì thế chọn store theo
+**binding có thật lúc chạy** (có `env.COHOC_CACHE` → KV, không có → đĩa), chứ không đoán runtime:
+workerd đời 2026 đã bỏ `process.versions.webworker` nên kiểu đoán nào cũng dễ sai, mà sai thì cache
+lỗ âm thầm.
+
 ### Cấu trúc thư mục
 
 ```
@@ -148,22 +168,18 @@ app/
   page.tsx                  UI: nhập ngày giờ → bảng lá số → luận giải
   api/chart                 POST sinh lá số
   api/report/export         POST soạn dữ liệu dán vào Gemini
-  api/report/import         POST nhận câu trả lời, validate, chấm chất lượng (nội bộ / kiểm thử)
   api/skill                 SKILL.md · 3 tệp tham khảo · zip
-components/                 BirthForm, ChartBoard, StarDrawer, ReportView,
+components/                 BirthForm, ChartBoard, StarDrawer,
                             ChatBridge, CohocPanel
 lib/tuvi/                   toàn bộ logic — vào bằng index.ts / pipeline.ts
   chart-generator.service.ts   Module 1 (an sao + scoring)
   cohoc-knowledge.service.ts   Module 2 (cổ học + cross-check)
   cohoc-parser.ts              bóc HTML cohoc
+  cohoc-store.ts               cache cổ học: đĩa (local) / KV (Worker)
   prompt-builder.ts            dựng bảng lá số và văn bản cổ học cho payload
   scoring.ts                   điểm engine 0–100
-  report-assembly.ts           ghép 4 phần, đối chiếu lá số
-  report-quality.ts            validator 12 tiêu chí
   skill-package.ts             SKILL.md + payload + zip
-  chat-bundle.ts               tách câu trả lời 4 khối
   prompts.ts · zip.ts · constants.ts · star-dictionary.ts
-schemas/report.schema.ts    Zod — hợp đồng đầu ra (4 nhóm × 4 cung)
 types/tuvi.ts               NormalizedChartJSON và các kiểu dùng chung
 scripts/                    test + audit chạy offline, không cần API key
 demo/                       ảnh chụp giao diện + bản xuất SKILL.md
@@ -175,7 +191,6 @@ demo/                       ảnh chụp giao diện + bản xuất SKILL.md
 |---|---|
 | `.env.local` | cấu hình cục bộ, không chứa khoá |
 | `.cache/` | HTML lá số đã bóc từ cohoc.net (giữ 30 ngày trên đĩa) |
-| `demo/snapshot.html` | bản render đã sinh — chạy `npm run snapshot` là tạo lại |
 | `.tmp/`, `*.log`, `.workbuddy-ai/` | rác dụng cụ phát triển |
 
 Repo giữ lại `demo/SKILL.md` + 3 tệp tham khảo (tài liệu, không chứa lá số) và ảnh chụp giao
@@ -306,7 +321,8 @@ Số liệu đo (22/10/2026, `npm run chart:audit`, chạy offline trên cache):
 
 ### Vận hành có trách nhiệm
 
-- Cache đĩa 30 ngày (`.cache/cohoc/`), 1 lá số = 1 request.
+- Cache 30 ngày — đĩa (`.cache/cohoc/`) khi chạy local, KV `COHOC_CACHE` khi chạy Worker;
+  1 lá số = 1 request.
 - Serialize request + giãn cách 1,2s.
 - Timeout 25s mỗi lần; nếu cohoc trả trang xếp hàng thì chờ đúng thời gian server báo, tối đa 3 lần.
 - `robots.txt` của cohoc không chặn `*` (chỉ chặn bot SEO/AI crawler cụ thể) — nhưng vẫn nên giữ
@@ -410,13 +426,14 @@ nào hai hệ quy chiếu đồng thuận, chỗ nào lệch.
 
 | Cách chạy | Bộ luật nằm ở đâu | Kích thước mỗi phần | Dùng được ở đâu |
 |---|---|---|---|
-| **Không cần cài** (mặc định) | nhúng đầu mỗi prompt | 17,5k–20,5k ký tự | mọi nơi, gồm **ứng dụng điện thoại** |
-| **Đã cài kỹ năng** | `SKILL.md` cài một lần | 6,3k–7,4k ký tự | chỉ bản web — Gemini mobile **không có nút tải kỹ năng** |
+| **Không cần cài** (mặc định) | nhúng đầu mỗi prompt | 12,9k (gọn) – 21,1k (kèm cổ học) | mọi nơi, gồm **ứng dụng điện thoại** |
+| **Đã cài kỹ năng** | `SKILL.md` cài một lần | 7,1k (gọn) – 15,4k (kèm cổ học) | chỉ bản web — Gemini mobile **không có nút tải kỹ năng** |
 
-Vì sao vẫn giữ bản "không cần cài" dù prompt dài hơn ~3 lần: ứng dụng Gemini trên điện thoại không
+Vì sao vẫn giữ bản "không cần cài" dù prompt dài hơn (khoảng 1,4 lần ở bản kèm cổ học, gấp ba ở
+bản gọn): ứng dụng Gemini trên điện thoại không
 cho tải tệp, nên đường duy nhất để luận giải bằng điện thoại là mỗi phần tự mang theo bộ luật
-(`buildInlineRulebook` trong `lib/tuvi/skill-package.ts`). Bản này bỏ mục KÍCH HOẠT và hợp đồng
-"đủ 4 khối" — mỗi lượt chỉ có một phần — nhưng giữ nguyên các điều khoản quyết định chất lượng:
+(`buildInlineRulebook` trong `lib/tuvi/skill-package.ts`). Bản này bỏ mục KÍCH HOẠT và phần dặn
+viết đủ 4 phần — mỗi lượt chỉ có một phần — nhưng giữ nguyên các điều khoản quyết định chất lượng:
 cách ly ngữ cảnh, trọng số 60/30/10, lệch điểm ±8, luật văn phong/độ dài, checklist tự kiểm.
 `pipeline:test` canh đúng danh sách đó để hai bản không lệch luật.
 
@@ -479,13 +496,13 @@ cần. Nhét hết vào một file là bắt người dùng trả context cho ph
 **Trần nội bộ 10.000 byte là byte, không phải ký tự** — tiếng Việt UTF-8 tốn ~1,23 byte/ký tự, nên
 cứ thêm nội dung vào `SKILL.md` là phải cắt chỗ khác tương đương. `pipeline:test` kiểm bằng
 `Buffer.byteLength`; check theo ký tự dễ báo "ổn" trong khi thực tế vượt trần. Gói hiện tại:
-**4 tệp, zip 16.328 byte (15,9 KB)**.
+**4 tệp, zip 16.543 byte (16,2 KB)**, `SKILL.md` 7.370 ký tự = 9.570 byte.
 
 Hai mục bắt buộc giữ dưới trần:
 
-- **§6 — Chiều sâu theo ĐIỂM ENGINE:** ≥75 → 2 đoạn · 51–74 → 1–2 đoạn · ≤50 → 1 đoạn.
-- **§10 — TỰ KIỂM TRƯỚC KHI TRẢ LỜI:** 5 mục đối chiếu thẳng với validator 12 tiêu chí
-  (đủ 4 khối/4 cung, evidence là sao thật, |scoreDelta| ≤ 8, không câu đệm, không trùng ý).
+- **§6 — Độ dài:** mỗi cung 2 đoạn ngắn (3–4 câu/đoạn) + 3 nhãn; cung ≥75 và cung ≤50 viết khác khuôn.
+- **TỰ KIỂM TRƯỚC KHI TRẢ LỜI:** 5 mục — đúng phần, đúng 4 cung, câu truy được về sao, lệch điểm
+  ≤8, không JSON/bảng/code fence.
 
 ### Bộ luật và dữ liệu tách rời
 
@@ -493,50 +510,50 @@ Khi bộ luật đã nằm trong kỹ năng, mỗi lá số chỉ cần dán **d
 
 | Chế độ | Kích thước (một lượt) | Khi nào dùng |
 |---|---|---|
-| **Gọn** | ~6.900 ký tự ≈ 5.750 token | dán nhanh; luận từ lá số, `meta.confidence = "thap"` |
-| **Kèm cổ học** | ~36.000 ký tự ≈ ~30.000 token | bản đầy đủ, có dẫn chiếu sách cổ |
+| **Gọn** | ~7.400 ký tự ≈ 6.100 token | dán nhanh; luận từ lá số, ghi `độ tin cậy: thấp` |
+| **Kèm cổ học** | ~36.500 ký tự ≈ 30.400 token | bản đầy đủ, có dẫn chiếu sách cổ |
 
-Chọn cách chạy "Không cần cài" thì mỗi phần cộng thêm ~4,9k ký tự bộ luật: bản kèm cổ học thành
-17,5k–20,5k mỗi phần, bản gọn ~11k–12k. Vẫn dưới ngưỡng 30k ký tự mà `pipeline:test` canh.
+Chọn cách chạy "Không cần cài" thì mỗi phần cộng thêm ~5k ký tự bộ luật: bản kèm cổ học thành
+17,5k–21,1k mỗi phần, bản gọn 11,8k–12,9k. Vẫn dưới ngưỡng 30k ký tự mà `pipeline:test` canh.
 
 Số thực tế thay đổi theo lượng văn bản cổ học tải được: khi cohoc.net không trả dữ liệu (hoặc lá
 số rơi vào tháng nhuận), bản "kèm cổ học" chỉ còn ~7.000 ký tự và payload tự ghi
-`confidence = "thap"`.
+`độ tin cậy: thấp`.
 
 Payload mang **cùng một ví dụ đầu ra** + bảng *chiều sâu theo điểm engine* (`buildFewShot` trong
 `prompt-builder.ts`, +1,5k ký tự). `pipeline:test` canh điều này.
 
-### Chia 4 lượt, không phải 1
+### Chia 4 lượt, cùng một chat
 
-Một câu trả lời chứa 12 cung JSON dễ bị cắt hoặc bị mô hình "viết cho xong". Nên ứng dụng chia:
+Một câu trả lời chứa cả 12 cung dễ bị cắt hoặc bị mô hình "viết cho xong". Nên ứng dụng chia:
 
 | Lượt | Nội dung | Bộ cung |
 |---|---|---|
-| 1 | Tổng quan + `meta` + `actionPlan` + `editorialNotes` | — |
+| 1 | Tổng quan: cách cục, ba trụ, 10 năm tới, việc làm ngay | — |
 | 2 | Tam Hợp Sự nghiệp | menh, quan_loc, tai_bach, thien_di |
 | 3 | Tam Hợp Gia đạo | phuc_duc, phu_the, tu_nu, dien_trach |
-| 4 | Quan hệ xã hội & sức khỏe | phu_mau, huynh_de, no_boc, tat_ach |
+| 4 | Quan hệ xã hội & sức khỏe, kết bằng khối "Hỏi tiếp" | phu_mau, huynh_de, no_boc, tat_ach |
 
-Mỗi phần là một prompt **độc lập**: tự mang dữ liệu lá số, văn bản cổ học của phần mình và cấu
-trúc JSON cần trả. Có thể dán cả 4 phần vào **cùng một chat** hoặc mở 4 chat riêng — kết quả như
-nhau, vì mỗi lượt không phụ thuộc lịch sử chat trước.
+Bốn phần được dán **lần lượt vào cùng một chat**: phần sau nối tiếp ngữ cảnh phần trước, và sau
+phần 4 mô hình đã có toàn bộ lá số nên **hỏi tiếp ngay trong chat** — không phải sao chép lại dữ
+liệu, không phải mở chat mới. Mỗi phần vẫn tự mang dữ liệu của mình nên mở chat mới vẫn chạy, chỉ
+mất khả năng hỏi tiếp liền mạch.
 
 Luồng trên UI:
 
 ```
 Cách chạy:  [ Không cần cài ]  [ Đã cài kỹ năng ]        (chỉ bản "đã cài" có mục "Cách trả lời")
 
-P1 · Tổng quan          → Sao chép / Chia sẻ → dán chat mới → đọc kết quả trong Gemini
-P2 · Sự nghiệp          → Sao chép / Chia sẻ → dán chat mới → đọc kết quả trong Gemini
-P3 · Gia đạo            → Sao chép / Chia sẻ → dán chat mới → đọc kết quả trong Gemini
-P4 · Xã hội & sức khỏe  → Sao chép / Chia sẻ → dán chat mới → đọc kết quả trong Gemini
+P1 · Tổng quan          → Sao chép / Chia sẻ → dán vào chat Gemini
+P2 · Sự nghiệp          → Sao chép / Chia sẻ → dán tiếp vào CHÍNH chat đó
+P3 · Gia đạo            → Sao chép / Chia sẻ → dán tiếp
+P4 · Xã hội & sức khỏe  → Sao chép / Chia sẻ → dán tiếp → hỏi tiếp thoải mái trong chat
 ```
 
-- **Bốn lượt** gọn hơn một lượt, mô hình còn ngân sách token để luận sâu và ít làm hỏng JSON. Đây
-  là chế độ khuyến nghị, và là chế độ duy nhất của bản "không cần cài" — một lượt mà mang cả luật
-  lẫn 12 cung thì vượt ngưỡng dán nổi trên điện thoại.
-- **Một lượt** (chỉ khi đã cài kỹ năng) dùng khi muốn sao chép ít lần; mô hình trả đủ 4 khối
-  `=== PHẦN n ===`.
+- **Bốn lượt** là chế độ khuyến nghị, và là chế độ duy nhất của bản "không cần cài" — một lượt mà
+  mang cả luật lẫn 12 cung thì vượt ngưỡng dán nổi trên điện thoại.
+- **Một lượt** (chỉ khi đã cài kỹ năng) dùng khi muốn sao chép ít lần; mô hình viết liền 4 phần
+  Markdown, nếu bị cắt giữa chừng thì gõ "tiếp".
 - Nút **Chia sẻ** chỉ hiện khi trình duyệt có Web Share API (`navigator.share`); chia sẻ thất bại
   thì tự rơi về sao chép. Ở HTTP trong mạng nội bộ, Clipboard API bị chặn nên có đường
   `execCommand('copy')` dự phòng trong `components/ChatBridge.tsx`.
@@ -544,83 +561,19 @@ P4 · Xã hội & sức khỏe  → Sao chép / Chia sẻ → dán chat mới �
 Bộ luật lấy ở `/api/skill` (`SKILL.md`), hoặc `/api/skill?inline=1` nếu muốn xem trước dạng văn
 bản. `/api/skill?format=zip` vẫn có cho nền tảng khác nhận zip.
 
-### Nhập câu trả lời về (API nội bộ)
+### Gói kỹ năng được canh bằng test
 
-Giao diện hiện tại không còn bước dán câu trả lời về — kết quả đọc ngay trong Gemini. Phần dưới
-mô tả đường nhập nội bộ `/api/report/import` còn giữ trong mã để kiểm thử và dùng qua API.
-
-Ứng dụng tách 4 khối JSON, validate bằng Zod, ghép lại và đối chiếu lá số. Bốn phần có thể lưu riêng:
-đủ cả 4 mới bấm lưu được (mỗi phần ≥ 50 ký tự).
-
-Khi nhập về, ứng dụng **ghi đè các trường dữ liệu** (ngày, giới tính, tên cung, chính tinh) bằng lá số
-engine — mô hình chép sai một chỗ cũng không làm báo cáo mâu thuẫn với lá số bên cạnh. Độ tin cậy
-vẫn giữ của mô hình vì đó là tự đánh giá về nguồn, không phải dữ liệu lá số.
-
-Báo cáo nằm trong phiên làm việc hiện tại; không có cache báo cáo trên đĩa. Mở lại link chia sẻ
-chỉ nạp lá số, muốn xem lại bản luận thì dán lại câu trả lời (hoặc giữ tab mở).
-
-Bốn kiểu hỏng được báo rõ thay vì im lặng:
+Gói được **sinh từ code**, không phải file viết tay: SKILL.md, bộ luật nhúng và mục "NHIỆM VỤ"
+của từng lượt cùng lấy mẫu từ các hằng `SKELETON_*` trong `skill-package.ts`, và mang
+`PROMPT_VERSION`. Sửa mẫu một chỗ là cả ba đường đổi theo. `scripts/test-pipeline.ts` canh:
 
 ```
-Thiếu phần 3, 4.  → "Chat có thể bị cắt giữa chừng — hãy yêu cầu viết tiếp phần còn lại."
-Phần 1 sai cấu trúc tại "overview.cachCuc.explanation": ...  (kèm 3 lỗi đầu)
-Phần 2 có 3 cung, cần đúng 4.  (kèm danh sách cung đã có)
-Phần 2 sai bộ cung: thiếu thien_di · lặp menh  (đủ 4 phần tử nhưng không đúng 4 cung)
+✓ hợp đồng Markdown: tiêu đề phần, mẫu cung, 3 nhãn, luật hỏi tiếp
+✓ mỗi phần đúng bộ 4 cung; phần 2–4 không kèm Đại vận; chỉ phần 4 mời hỏi tiếp
+✓ bản nhúng (điện thoại) mang đủ điều khoản gốc và < 30k ký tự
+✓ SKILL.md < 10.000 byte; ZIP có SKILL.md ở gốc + end-of-central-directory
+✓ tháng nhuận: engine đủ 12 cung, có cờ `classicalSkip`, không cảnh báo trùng
 ```
-
-**Vì sao chia 4 khối chứ không 1:** đã đo — JSON 12 cung trong một lần trả lời thì mô hình hay làm
-hỏng cấu trúc. Bốn khối nhỏ có dấu phân cách thì parse được, và lỗi cô lập: sai khối nào báo đúng
-khối đó, kèm đường dẫn field.
-
-### Vòng kiểm chất lượng — 12 tiêu chí
-
-`lib/tuvi/report-quality.ts` kiểm bằng máy những gì đo được, ngay sau khi ghép báo cáo:
-
-| Đường | Chạy ở đâu | Trả về đâu |
-|---|---|---|
-| Nhập từ Gemini — `POST /api/report/import` | sau `alignReportToChart` | field `quality` trong response |
-
-12 tiêu chí: đủ 12 cung · narrative 300–650 · biên độ độ dài ≥150 · evidence truy được về lá số ·
-điểm lệch engine ≤8 · sao nhắc thuộc cung/tam hợp/xung chiếu · không trùng câu · không câu đệm ·
-không ngôi cấm · narrative có căn cứ sao · cấu trúc 1–2 đoạn · câu phú có thật trong nguồn.
-
-**Không chặn**: báo cáo vẫn được trả về, kèm bảng điểm để người dùng biết đọc lại chỗ nào. Khi dùng
-qua API nội bộ, kết quả hiện trong response; còn 12/12 thì một dòng chốt. Tiêu chí rớt được gắn nhãn
-tiếng Việt (`QUALITY_LABEL`) và **có test canh**: `npm run pipeline:test` làm hỏng fixture có chủ
-đích rồi kiểm đúng tiêu chí phải rớt.
-
-Riêng câu phú (`classicalQuote`) do mô hình tự chọn: validator đối chiếu **nguyên văn** với văn bản
-cổ học đã tải về. Không tìm thấy trong nguồn → tiêu chí `quote-real` rớt; không dẫn câu phú thì
-tiêu chí này đạt (không có gì để bịa). Bản luận vẫn được lưu, nhưng kết quả kiểm tra nêu cảnh báo
-để người đọc biết chỗ nào chưa kiểm chứng được.
-
-Giới hạn trung thực: tiêu chí văn phong (mật độ thông tin, nhịp câu) khó kiểm bằng máy hơn nhiều
-so với độ dài và trùng lặp; `len-spread` chỉ là proxy — 12 cung viết đều tay vẫn "đậu" tiêu chí
-này.
-
-### Chống lệch giữa kỹ năng và schema
-
-Bộ luật dạy tên field bằng **văn bản**, schema kiểm bằng **Zod**. Lệch một chữ là 100% báo cáo
-nhập về hỏng validate, mà triệu chứng lại hiện ở tay người dùng. Nên `scripts/test-pipeline.ts`
-kiểm cả hai phía:
-
-```
-✓ có "rationale" (tên field đúng)      ✓ frontmatter có name kebab-case
-✓ không có "ruleRationale"             ✓ có mô tả cho bộ định tuyến skill
-✓ có "palaceKey"                       ✓ chữ ký ZIP hợp lệ
-✓ đủ 4 dấu phân cách                   ✓ SKILL.md là tệp đầu tiên (ở gốc gói)
-✓ có điều khoản cách ly ngữ cảnh        ✓ có end-of-central-directory
-✓ câu trả lời định dạng kỹ năng → 12 cung, 3 goldenRules
-✓ ví dụ đầu ra + bảng chiều sâu có trong payload
-✓ validator 12 tiêu chí bắt được lỗi bịa (fixture cố tình làm hỏng)
-```
-
-Kiểm tra này đã bắt được một lỗi thật (`ruleRationale` thay vì `rationale`) trước khi nó tới tay
-người dùng.
-
-Gói được **sinh từ code**, không phải file viết tay: dùng chung `SHAPE_PALACE` với
-`chat-bundle.ts` và mang `PROMPT_VERSION`. Sửa schema mà quên sửa kỹ năng là mọi báo cáo nhập về
-hỏng validate — nên hai bên buộc phải cùng một nguồn.
 
 ---
 
@@ -628,9 +581,8 @@ hỏng validate — nên hai bên buộc phải cùng một nguồn.
 
 | Endpoint | Mô tả |
 |---|---|
-| `POST /api/chart` | Trả `NormalizedChartJSON` (~0,1s khi có cache cổ học; lần đầu có thể 15–20s nếu cohoc xếp hàng) + `classicalMeta` + `warnings` |
-| `POST /api/report/export` | Soạn dữ liệu dán vào Gemini: 1 khối hoặc 4 phần (`skillDelivery: 'parts'`), kèm bộ luật khi `skillInstall: 'inline'` |
-| `POST /api/report/import` | Nhận câu trả lời, tách 4 khối, validate, đối chiếu lá số, chấm 12 tiêu chí |
+| `POST /api/chart` | Trả `NormalizedChartJSON` (~0,1s khi có cache cổ học; lần đầu có thể 15–20s nếu cohoc xếp hàng) + `classicalMeta` + `classicalSkip` + `warnings` |
+| `POST /api/report/export` | Soạn dữ liệu dán vào Gemini: 4 phần (`skillDelivery: 'parts'`) hoặc một lượt, kèm bộ luật khi `skillInstall: 'inline'` |
 | `GET /api/skill` | `SKILL.md` (mặc định), `?file=…` (3 tệp tham khảo), `?inline=1`, `?format=zip` |
 
 Nội dung chung (`schemas/request.schema.ts`):
@@ -661,8 +613,6 @@ Nội dung chung (`schemas/request.schema.ts`):
 
 `skillInstall: 'inline'` = mỗi phần mang theo bộ luật (cách chạy "Không cần cài") và luôn trả về 4
 phần; `'installed'` (mặc định) = chỉ dữ liệu, luật lấy từ kỹ năng đã cài.
-
-`/api/report/import` nhận thêm `text` — toàn bộ câu trả lời dán từ Gemini.
 
 ---
 
@@ -708,8 +658,9 @@ Tồn, Thiên Mã, Tuần, Triệt). Viết ngắn theo lối sách cổ, không
    engine chỉ cảnh báo, không tự quy đổi.
 8. **Tháng nhuận đã nhập được, nhưng tầng cổ học bị bỏ qua.** Form có ô "Tháng nhuận" và tuỳ chọn
    `fixLeap`; engine dựng đúng lá số. cohoc.net không có tuỳ chọn tháng nhuận nên văn bản cổ học sẽ
-   thuộc một lá số khác — pipeline chủ động bỏ tầng này và ghi cảnh báo, bản luận khi đó chỉ dựa
-   trên lá số engine.
+   thuộc một lá số khác — pipeline chủ động bỏ tầng này, trả cờ `classicalSkip: 'leap-month'` và
+   giao diện ghi rõ lý do ngay chỗ đáng lẽ là bảng Đẩu Minh; bản luận khi đó chỉ dựa trên lá số
+   engine.
 9. **`quote-real` chỉ mạnh bằng nguồn đã tải.** Validator đối chiếu câu phú với văn bản cổ học hiện
    có; nếu tầng cổ học bị tắt hoặc không tải được, mọi câu phú đều bị đánh rớt (không có gì để đối
    chiếu). Đây là hành vi cố ý: thà báo "chưa kiểm chứng được" còn hơn cho qua một câu phú bịa.

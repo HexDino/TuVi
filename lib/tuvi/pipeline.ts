@@ -10,7 +10,11 @@
 
 import type { ChartInput, NormalizedChartJSON, RawClassicalTexts } from '@/types/tuvi';
 import { chartGenerator } from './chart-generator.service';
-import { CohocKnowledgeService, type CohocViewMode } from './cohoc-knowledge.service';
+import {
+  createCohocService,
+  type CohocKnowledgeService,
+  type CohocViewMode,
+} from './cohoc-knowledge.service';
 import { buildHints } from './prompt-builder';
 
 export interface AnalyzeOptions {
@@ -27,6 +31,12 @@ export interface AnalyzeResult {
   classical: RawClassicalTexts | null;
   /** Cảnh báo gộp từ mọi tầng — hiển thị cho người dùng biết độ tin cậy. */
   warnings: string[];
+  /**
+   * Vì sao không có tầng cổ học. Trả về dạng cờ thay vì câu cảnh báo, vì giao
+   * diện đã nói lý do ngay chỗ đáng lẽ là bảng Đẩu Minh; nhét thêm một dải vàng
+   * ở đầu trang chỉ lặp lại cùng một câu.
+   */
+  classicalSkip?: 'leap-month';
 }
 
 export async function analyzeChart(input: ChartInput, options: AnalyzeOptions = {}): Promise<AnalyzeResult> {
@@ -51,14 +61,11 @@ export async function analyzeChart(input: ChartInput, options: AnalyzeOptions = 
    * đường — lỗi ở tháng nhuận, không phải ở giờ.
    */
   if (chart.meta.lunar.isLeapMonth) {
-    warnings.push(
-      `Sinh vào tháng ${chart.meta.lunar.month} nhuận. cohoc.net không có tuỳ chọn tháng nhuận nên dữ liệu cổ học sẽ là của một lá số khác — đã bỏ qua tầng này. Bản luận chỉ dựa trên lá số engine (vẫn đủ 12 cung).`,
-    );
-    return { chart, classical: null, warnings };
+    return { chart, classical: null, warnings, classicalSkip: 'leap-month' };
   }
 
   /* Module 2 — best effort, không được làm sập pipeline */
-  const service = options.cohoc ?? new CohocKnowledgeService();
+  const service = options.cohoc ?? (await createCohocService());
   const classical = await service.fetchTexts({
     solarDate: chart.meta.solarDate,
     gender: chart.meta.gender,

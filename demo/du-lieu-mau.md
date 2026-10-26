@@ -5,7 +5,7 @@ dữ liệu thật có đủ 12 cung và bảng Đại vận.
 
 ```
 # DỮ LIỆU LÁ SỐ
-PROMPT_VERSION: 1.0.0
+PROMPT_VERSION: 1.1.0
 
 ## A. DỮ LIỆU LÁ SỐ (engine nội bộ iztro)
 
@@ -29,5 +29,5 @@ PROMPT_VERSION: 1.0.0
 
 Ghi chú quan trọng:
 - Bảng "ĐIỂM ENGINE" là mốc để chấm điểm. Không được bỏ qua.
-- Nếu KHÔNG có phần B, vẫn viết đủ 4 khối và hạ `meta.confidence`.
+- Nếu KHÔNG có phần B, vẫn viết đủ 4 phần và ghi `độ tin cậy: thấp`.
 - Chi của "Cửu Thiên Phi Tinh" là hệ tọa độ riêng, KHÔNG so sánh với địa chi Thiên bàn.

@@ -16,7 +16,7 @@
  *  iztro đã cho ta solarDate chính xác.)
  *
  * NGUYÊN TẮC VẬN HÀNH:
- *  - Cache đĩa 30 ngày.
+ *  - Cache 30 ngày, cất qua CohocStore (đĩa khi chạy local, KV khi chạy Worker).
  *  - Serialize request + giãn cách 1.2s → không hammer server người ta.
  *  - Timeout 25s.
  *  - Lỗi mạng KHÔNG được làm sập pipeline: trả object rỗng kèm warnings để
@@ -40,7 +40,6 @@
  */
 
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import type { Gender, PalaceKey, RawClassicalTexts } from '@/types/tuvi';
 import {
@@ -49,6 +48,7 @@ import {
   parseCohocChartTable,
   crossCheckChart,
 } from './cohoc-parser';
+import { createCohocStore, createFileStore, type CohocStore } from './cohoc-store';
 
 const BASE = 'https://tuvi.cohoc.net';
 const SOLAR_FORM_PATH = '/lay-la-so-tu-vi-ngay-duong-lich.html';
@@ -85,6 +85,12 @@ export interface CohocFetchInput {
 
 export interface CohocServiceOptions {
   cacheDir?: string;
+  /**
+   * Nơi cất bản lưu. Mặc định là FileStore trỏ vào `cacheDir` — đủ cho máy cá
+   * nhân. Trên Worker, `createCohocService()` truyền KvStore để cache sống dai
+   * qua các lần tỉnh isolate.
+   */
+  store?: CohocStore;
   maxCharsPerPalace?: number;
   maxCharsOverview?: number;
   maxCharsPerDecadal?: number;
@@ -104,7 +110,7 @@ export interface CohocServiceOptions {
   fetchImpl?: typeof fetch;
 }
 
-const DEFAULTS: Required<Omit<CohocServiceOptions, 'fetchImpl'>> = {
+const DEFAULTS: Required<Omit<CohocServiceOptions, 'fetchImpl' | 'store'>> = {
   cacheDir: path.join(process.cwd(), '.cache', 'cohoc'),
   maxCharsPerPalace: 1800,
   // 8 khối tổng quan của cohoc ~3.878 ký tự; 3.000 từng cắt giữa câu khối
@@ -156,7 +162,8 @@ function timeIndexToDdlGio(timeIndex: number): string {
 /* ------------------------------ SERVICE ------------------------------ */
 
 export class CohocKnowledgeService {
-  private opt: Required<Omit<CohocServiceOptions, 'fetchImpl'>>;
+  private opt: Required<Omit<CohocServiceOptions, 'fetchImpl' | 'store'>>;
+  private store: CohocStore;
   private fetchImpl: typeof fetch;
   private queue: Promise<unknown> = Promise.resolve();
   private lastCall = 0;
@@ -165,6 +172,7 @@ export class CohocKnowledgeService {
 
   constructor(options: CohocServiceOptions = {}) {
     this.opt = { ...DEFAULTS, ...options };
+    this.store = options.store ?? createFileStore(this.opt.cacheDir);
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
 
@@ -212,8 +220,9 @@ export class CohocKnowledgeService {
       }
 
       // Ghi HTML thô bằng key KHÔNG version — để đời parser sau vẫn cứu được.
-      await this.writeRawCache(this.stableKey(input, viewMode), html);
-      await this.writeCache(cacheKey, parsed);
+      const rawKey = this.stableKey(input, viewMode);
+      await this.store.write(`${rawKey}.html`, html);
+      await this.store.write(`${cacheKey}.json`, JSON.stringify(parsed));
       return parsed;
     } catch (err) {
       /* Cứu bằng HTML cũ: mạng hỏng / bị chặn không có nghĩa là phải luận chay.
@@ -272,16 +281,14 @@ export class CohocKnowledgeService {
     mode: { code: string; label: string },
   ): Promise<RawClassicalTexts | null> {
     try {
-      const file = this.rawCachePath(this.stableKey(input, viewMode));
-      const html = await readFile(file, 'utf8');
-      if (!isResultPage(html)) return null;
+      const entry = await this.store.read(`${this.stableKey(input, viewMode)}.html`);
+      if (!entry || !isResultPage(entry.text)) return null;
 
-      const st = await stat(file);
-      const ageHours = Math.floor((Date.now() - st.mtimeMs) / 3_600_000);
+      const ageHours = Math.floor(entry.ageMs / 3_600_000);
       const ageText =
         ageHours < 1 ? 'vừa tải trong giờ' : ageHours < 24 ? `${ageHours} giờ trước` : `${Math.floor(ageHours / 24)} ngày trước`;
 
-      const parsed = parseCohocPage(html, `${BASE}${SOLAR_FORM_PATH}`, mode.label, {
+      const parsed = parseCohocPage(entry.text, `${BASE}${SOLAR_FORM_PATH}`, mode.label, {
         hints: input.hints,
         maxCharsPerPalace: this.opt.maxCharsPerPalace,
         maxCharsOverview: this.opt.maxCharsOverview,
@@ -301,37 +308,21 @@ export class CohocKnowledgeService {
 
   /**
    * Lấy HTML thô — dùng cho cross-check.
-   * Đọc cache đĩa trước: fetchTexts đã lưu HTML, nên cross-check không phát
+   * Đọc cache trước: fetchTexts đã lưu HTML, nên cross-check không phát
    * sinh request thứ 2 (1 lá số = 1 request tới cohoc.net).
    */
   async fetchRawHtml(input: CohocFetchInput): Promise<{ html: string; finalUrl: string }> {
     const viewMode = input.viewMode ?? 'tong-hop';
-    // HTML thô dùng key không-version: cùng một lá số thì cùng một file, đổi
+    // HTML thô dùng key không-version: cùng một lá số thì cùng một bản lưu, đổi
     // parser không làm mất bản đã tải.
     const key = this.stableKey(input, viewMode);
-    try {
-      const html = await readFile(this.rawCachePath(key), 'utf8');
-      if (html.length > 1000) return { html, finalUrl: '' };
-    } catch {
-      /* chưa có cache → gọi mạng */
-    }
+    const cached = await this.store.read(`${key}.html`);
+    if (cached && cached.text.length > 1000) return { html: cached.text, finalUrl: '' };
+
     const mode = VIEW_MODES[viewMode];
     const res = await this.enqueue(() => this.postForm(input, mode.code));
-    await this.writeRawCache(key, res.html);
+    await this.store.write(`${key}.html`, res.html);
     return res;
-  }
-
-  private rawCachePath(key: string): string {
-    return path.join(this.opt.cacheDir, `${key}.html`);
-  }
-
-  private async writeRawCache(key: string, html: string): Promise<void> {
-    try {
-      await mkdir(this.opt.cacheDir, { recursive: true });
-      await writeFile(this.rawCachePath(key), html, 'utf8');
-    } catch {
-      /* best effort */
-    }
   }
 
   /** Đối chiếu lá số của ta với bảng trên cohoc. */
@@ -367,12 +358,10 @@ export class CohocKnowledgeService {
   }
 
   private async readCache(key: string): Promise<RawClassicalTexts | null> {
-    const file = path.join(this.opt.cacheDir, `${key}.json`);
+    const entry = await this.store.read(`${key}.json`);
+    if (!entry || entry.ageMs > this.opt.cacheTtlMs) return null;
     try {
-      const s = await stat(file);
-      if (Date.now() - s.mtimeMs > this.opt.cacheTtlMs) return null;
-      const txt = await readFile(file, 'utf8');
-      const parsed = JSON.parse(txt) as RawClassicalTexts;
+      const parsed = JSON.parse(entry.text) as RawClassicalTexts;
       // `{}` là truthy → phải kiểm tra có cung thật, nếu không cache rỗng sẽ
       // được coi là hợp lệ và che mất việc phải tải lại.
       if (!parsed?.palaces || !Object.keys(parsed.palaces).length) return null;
@@ -380,15 +369,6 @@ export class CohocKnowledgeService {
       return { ...parsed, fromCache: true };
     } catch {
       return null;
-    }
-  }
-
-  private async writeCache(key: string, data: RawClassicalTexts): Promise<void> {
-    try {
-      await mkdir(this.opt.cacheDir, { recursive: true });
-      await writeFile(path.join(this.opt.cacheDir, `${key}.json`), JSON.stringify(data), 'utf8');
-    } catch {
-      /* cache là best-effort */
     }
   }
 
@@ -483,4 +463,12 @@ export class CohocKnowledgeService {
   }
 }
 
-export const cohocKnowledge = new CohocKnowledgeService();
+/**
+ * Service dùng đúng nơi lưu của môi trường đang chạy.
+ * Local → FileStore ở `.cache/cohoc` (giữ nguyên như trước). Worker → KV, vì đĩa của
+ * workerd chỉ là RAM trong isolate và sẽ mất khi tỉnh dậy.
+ */
+export async function createCohocService(options: CohocServiceOptions = {}): Promise<CohocKnowledgeService> {
+  const store = await createCohocStore();
+  return new CohocKnowledgeService(store ? { ...options, store } : options);
+}
