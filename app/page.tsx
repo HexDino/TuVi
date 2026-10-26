@@ -190,9 +190,6 @@ export default function Page() {
           {!chart && (
             <div className="empty">
               <b>Chưa có lá số</b>
-              Nhập ngày giờ sinh ở cột bên trái. Lá số được an ngay; lần đầu lấy văn bản cổ học
-              có thể phải chờ thêm 15–20 giây nếu cohoc.net đang xếp hàng. Phần luận giải được viết
-              trong Gemini bằng gói kỹ năng, không gọi API của mô hình.
               <div style={{ marginTop: 14 }}>
                 <button className="btn-ghost" onClick={() => handleSubmit(DEMO)}>
                   Xem lá số mẫu
